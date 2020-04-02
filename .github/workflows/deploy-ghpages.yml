@@ -1,27 +1,29 @@
 name: Github pages deploy
 on:
   push:
-    branches: [ master ]
+    branches: [master]
 jobs:
   publish:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
-      with:
-        submodules: true
-    - name: Install
-      uses: CultureHQ/actions-yarn@master
-      with:
-        args: install
-    - name: Generate
-      uses: CultureHQ/actions-yarn@master
-      with:
-        args: generate
-    - name: Deploy
-      if: success()
-      uses: crazy-max/ghaction-github-pages@v1
-      with:
-        target_branch: gh-pages
-        build_dir: dist
-      env:
-        GITHUB_PAT: ${{ secrets.GITHUBPAT }}
+      - uses: actions/checkout@v2
+        with:
+          submodules: true
+      - name: Install
+        uses: CultureHQ/actions-yarn@master
+        with:
+          args: install
+      - name: Generate
+        uses: CultureHQ/actions-yarn@master
+        with:
+          args: generate
+        env:
+          NUXT_SUBFOLDER: /Esp32-RBGridUI-Designer/
+      - name: Deploy
+        if: success()
+        uses: crazy-max/ghaction-github-pages@v1
+        with:
+          target_branch: gh-pages
+          build_dir: dist
+        env:
+          GITHUB_PAT: ${{ secrets.GITHUBPAT }}

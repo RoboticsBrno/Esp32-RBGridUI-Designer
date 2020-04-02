@@ -89,6 +89,6 @@ export default {
     parallel: true
   },
   router: {
-    base: './'
+    base: process.env.NUXT_SUBFOLDER || '/'
   }
 }
