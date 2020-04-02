@@ -1,0 +1,3 @@
+[submodule "gridui"]
+	path = gridui
+	url = git@github.com:RoboticsBrno/Esp32-RBGridUI.git
