@@ -87,5 +87,8 @@ export default {
     },
     cache: true,
     parallel: true
+  },
+  router: {
+    base: './'
   }
 }
