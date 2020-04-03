@@ -95,7 +95,12 @@ export default {
 
       const idx = gSelectedWidgets.indexOf(w)
       if (idx !== -1) gSelectedWidgets.splice(idx, 1)
-      else w.el.classList.add('grid-widget-active')
+      else {
+        w.el.classList.add('grid-widget-active')
+        if (!multiple) {
+          this.clearSelection(0)
+        }
+      }
       gSelectedWidgets.push(w)
 
       const rect = w.el.getBoundingClientRect()
