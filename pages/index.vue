@@ -35,13 +35,24 @@
       </v-card>
     </div>
 
-    <v-card class="pa-2" width="250px">
-      <v-card-title>Properties</v-card-title>
+    <v-card width="250px" class="d-flex py-1 flex-column">
+      <v-card-title class="pb-0">Properties</v-card-title>
+      <div style="overflow-y: auto;" class="flex-grow-1">
+        <property-table :properties="properties" />
+      </div>
     </v-card>
 
     <div class="d-flex flex-column ms-2" style="heigth: 100%; flex-grow: 4">
-      <v-card class="pa-2 mb-1 flex-grow-1"> </v-card>
-      <v-card class="pa-2 mt-1 flex-grow-1"> </v-card>
+      <v-card
+        class="pa-2 mb-1 text-monospace"
+        style="overflow-y: auto; flex: 1 1 0px;"
+      >
+        <pre
+          style="height: 100%; font-size: 10px;"
+          v-text="`${JSON.stringify(layout, null, 4)}`"
+        ></pre>
+      </v-card>
+      <v-card class="pa-2 mt-1" style="flex: 1 1 0px;"> </v-card>
     </div>
   </div>
 </template>
@@ -50,6 +61,8 @@
 import DefaultWidgetStates from '~/src/DefaultWidgetStates'
 import WidgetAdder from '~/src/WidgetAdder'
 import { UndoStack, AddWidget, DeleteWidget, MoveWidget } from '~/src/UndoStack'
+
+import PropertyTable from '~/components/PropertyTable'
 
 import '~/gridui/web/js/00_header'
 import '~/gridui/web/js/05_widget'
@@ -63,11 +76,13 @@ req.keys().forEach(function(key) {
 })
 
 let gGrid = null
-const gSelectedWidgets = []
 let gWidgetAdder = null
 const gUndoStack = new UndoStack()
 
 export default {
+  components: {
+    PropertyTable
+  },
   data() {
     let types = []
     if (process.client && window.Widget) {
@@ -83,7 +98,35 @@ export default {
       isDragging: false,
       widgetTypes: types,
       clickX: 0,
-      clickY: 0
+      clickY: 0,
+      selectedWidgets: [],
+      layout: []
+    }
+  },
+  computed: {
+    properties() {
+      if (this.selectedWidgets.length !== 1) return {}
+
+      const w = this.selectedWidgets[0]
+      const general = {}
+      const perWidget = {}
+
+      const proto = Object.getPrototypeOf(w)
+      for (const [key, prop] of Object.entries(proto.PROPERTIES)) {
+        const val = {
+          type: prop.types[0],
+          value: prop.get ? prop.get.call(w) : w[key]
+        }
+        if (key in window.Widget.prototype.PROPERTIES) {
+          general[key] = val
+        } else {
+          perWidget[key] = val
+        }
+      }
+
+      const res = { General: general }
+      res[w.constructor.name] = perWidget
+      return res
     }
   },
   mounted() {
@@ -96,6 +139,8 @@ export default {
     window.addEventListener('resize', this.updateGridCardWidth.bind(this))
     window.addEventListener('mouseup', this.onGridMouseUp.bind(this))
     document.addEventListener('keydown', this.onKeyDown.bind(this))
+
+    this.updateLayout()
   },
   methods: {
     updateGridCardWidth() {
@@ -138,15 +183,15 @@ export default {
       const w = gGrid.getWidgetAtPos(ev.clientX, ev.clientY)
       if (w === null) return
 
-      const idx = gSelectedWidgets.indexOf(w)
-      if (idx !== -1) gSelectedWidgets.splice(idx, 1)
+      const idx = this.selectedWidgets.indexOf(w)
+      if (idx !== -1) this.selectedWidgets.splice(idx, 1)
       else {
         w.el.classList.add('grid-widget-active')
         if (!multiple) {
           this.clearSelection(0)
         }
       }
-      gSelectedWidgets.push(w)
+      this.selectedWidgets.push(w)
 
       const rect = w.el.getBoundingClientRect()
       if (
@@ -161,7 +206,7 @@ export default {
         w.origPos = w.pos()
       } else {
         this.isDragging = true
-        for (const w of gSelectedWidgets) {
+        for (const w of this.selectedWidgets) {
           const rect = w.el.getBoundingClientRect()
           w.mouseOffX = ev.clientX - rect.left
           w.mouseOffY = ev.clientY - rect.top
@@ -173,7 +218,7 @@ export default {
       if (!this.isDragging && !this.isScaling) return
 
       const moves = []
-      for (const w of gSelectedWidgets) {
+      for (const w of this.selectedWidgets) {
         if (!w.pos().equals(w.origPos)) {
           moves.push(new MoveWidget(w, w.origPos))
         }
@@ -201,7 +246,7 @@ export default {
       const method = this.isDragging
         ? gGrid.tryMoveWidget
         : gGrid.tryScaleWidget
-      for (const w of gSelectedWidgets) {
+      for (const w of this.selectedWidgets) {
         if (
           method.call(
             gGrid,
@@ -214,12 +259,13 @@ export default {
           this.clickY = 0
         }
       }
+      this.updateLayout()
     },
     clearSelection(keepCount) {
-      if (gSelectedWidgets.length < 1 + keepCount) return
-      const removed = gSelectedWidgets.splice(
+      if (this.selectedWidgets.length < 1 + keepCount) return
+      const removed = this.selectedWidgets.splice(
         0,
-        gSelectedWidgets.length - keepCount
+        this.selectedWidgets.length - keepCount
       )
       for (const w of removed) {
         w.el.classList.remove('grid-widget-active')
@@ -238,6 +284,7 @@ export default {
         h
       })
       gUndoStack.push(new AddWidget(gGrid, widget))
+      this.updateLayout()
     },
     onKeyDown(ev) {
       if (this.isDragging || this.isScaling) return
@@ -245,7 +292,7 @@ export default {
       switch (ev.key) {
         case 'Delete': {
           const ops = []
-          for (const w of gSelectedWidgets) {
+          for (const w of this.selectedWidgets) {
             ops.push(new DeleteWidget(gGrid, w))
           }
           gUndoStack.push(...ops)
@@ -266,7 +313,7 @@ export default {
           break
       }
     },
-    getLayout() {
+    updateLayout() {
       const widgets = []
       for (const w of gGrid.widgets) {
         widgets.push({
@@ -276,7 +323,7 @@ export default {
         })
       }
 
-      return {
+      this.layout = {
         cols: gGrid.COLS,
         rows: gGrid.ROWS,
         enableSplitting: gGrid.enableSplitting,
