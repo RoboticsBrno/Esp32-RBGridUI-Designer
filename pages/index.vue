@@ -2,7 +2,7 @@
   <div
     class="blue-grey lighten-4 layout-container d-flex justify-space-between pa-1"
   >
-    <v-card class="pa-2" width="200px">
+    <v-card width="200px">
       <v-card-title>Widgets</v-card-title>
 
       <client-only>
@@ -24,7 +24,7 @@
     <div
       id="grid-wrapper"
       class="d-flex align-center justify-center my-12 mx-6"
-      style="flex: 3 1 0px !important"
+      style="flex: 4 1 0px"
     >
       <v-card id="grid-card">
         <div
@@ -38,11 +38,14 @@
     <v-card width="250px" class="d-flex py-1 flex-column">
       <v-card-title class="pb-0">Properties</v-card-title>
       <div style="overflow-y: auto;" class="flex-grow-1">
-        <property-table :properties="properties" />
+        <property-table
+          :properties="properties"
+          @prop-changed="onPropertyChanged"
+        />
       </div>
     </v-card>
 
-    <div class="d-flex flex-column ms-2" style="heigth: 100%; flex-grow: 4">
+    <div class="d-flex flex-column ms-2" style="heigth: 100%; flex: 5 1 0px;">
       <v-card
         class="pa-2 mb-1 text-monospace"
         style="overflow-y: auto; flex: 1 1 0px;"
@@ -329,6 +332,15 @@ export default {
         enableSplitting: gGrid.enableSplitting,
         widgets: widgets
       }
+    },
+    onPropertyChanged(name, value) {
+      if (this.selectedWidgets.length !== 1) return
+
+      const state = {}
+      state[name] = value
+
+      this.selectedWidgets[0].applyState(state)
+      this.updateLayout()
     }
   }
 }

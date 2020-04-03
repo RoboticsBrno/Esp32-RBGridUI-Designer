@@ -12,28 +12,28 @@
           <td class="text-no-wrap">
             <input
               v-if="prop.type === Boolean"
+              v-model="models[name]"
               type="checkbox"
-              :checked="prop.value"
             />
             <input
               v-else-if="prop.type === Number"
+              v-model="models[name]"
               type="number"
               step="0.5"
               style="width: 100%"
-              :value="prop.value"
             />
             <input
               v-else-if="prop.type === String"
+              v-model="models[name]"
               type="text"
               style="width: 100%"
-              :value="prop.value"
             />
             <div
               v-else
               class="grey--text text--lighten-1"
               style="cursor: not-allowed"
             >
-              {{ prop.value }}
+              {{ models[name] }}
             </div>
           </td>
         </tr>
@@ -46,6 +46,9 @@
 </template>
 
 <script>
+import clone from 'rfdc'
+import deepEqual from 'deep-equal'
+
 export default {
   props: {
     properties: {
@@ -54,9 +57,48 @@ export default {
     }
   },
   data() {
-    return {}
+    return {
+      originalValues: {},
+      models: {}
+    }
   },
-  methods: {}
+  watch: {
+    properties: {
+      deep: true,
+      handler() {
+        this.originalValues = this.copyProperties()
+        this.models = this.copyProperties()
+      }
+    },
+    models: {
+      deep: true,
+      handler() {
+        for (const [key, curVal] of Object.entries(this.models)) {
+          if (!this.propEquals(curVal, this.originalValues[key])) {
+            this.$emit('prop-changed', key, curVal)
+            this.$set(this.originalValues, key, curVal)
+          }
+        }
+      }
+    }
+  },
+  methods: {
+    propEquals(a, b) {
+      if (a instanceof Object) {
+        return deepEqual(a, b, { strict: true })
+      }
+      return a === b
+    },
+    copyProperties() {
+      const vals = {}
+      for (const props of Object.values(this.properties)) {
+        for (const [key, prop] of Object.entries(props)) {
+          vals[key] = clone()(prop.value)
+        }
+      }
+      return vals
+    }
+  }
 }
 </script>
 
