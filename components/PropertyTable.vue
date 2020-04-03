@@ -11,22 +11,27 @@
           </td>
           <td class="text-no-wrap">
             <input
-              v-if="prop.type === Boolean"
+              v-if="prop.editable && prop.type === Boolean"
               v-model="models[name]"
               type="checkbox"
             />
             <input
-              v-else-if="prop.type === Number"
+              v-else-if="prop.editable && prop.type === Number"
               v-model="models[name]"
               type="number"
               step="0.5"
               style="width: 100%"
             />
             <input
-              v-else-if="prop.type === String"
+              v-else-if="prop.editable && prop.type === String"
               v-model="models[name]"
               type="text"
               style="width: 100%"
+            />
+            <object-property-editor
+              v-else-if="prop.editable && prop.type === Object"
+              v-model="models[name]"
+              :name="name"
             />
             <div
               v-else
@@ -49,7 +54,12 @@
 import clone from 'rfdc'
 import deepEqual from 'deep-equal'
 
+import ObjectPropertyEditor from './ObjectPropertyEditor'
+
 export default {
+  components: {
+    ObjectPropertyEditor
+  },
   props: {
     properties: {
       type: Object,
@@ -102,7 +112,7 @@ export default {
 }
 </script>
 
-<style lang="scss">
+<style lang="scss" scoped>
 .property-table {
   width: 100%;
   border-collapse: collapse;
