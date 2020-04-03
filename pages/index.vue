@@ -1,6 +1,19 @@
 <template>
   <div class="blue-grey lighten-4 container">
-    <v-card id="widget-list"></v-card>
+    <v-card id="widget-list" class="px-2 py-12">
+      <v-btn
+        v-for="t in widgetTypes"
+        :key="t.name"
+        block
+        text
+        color="primary"
+        class="justify-start add-button"
+        large
+        @mousedown="onAddWidgetDown($event, t.type)"
+      >
+        {{ t.name }}
+      </v-btn>
+    </v-card>
 
     <v-card id="grid-card">
       <div
@@ -13,6 +26,10 @@
 </template>
 
 <script>
+import DefaultWidgetStates from '~/src/DefaultWidgetStates'
+import WidgetAdder from '~/src/WidgetAdder'
+import { UndoStack, AddWidget, DeleteWidget, MoveWidget } from '~/src/UndoStack'
+
 import '~/gridui/web/js/00_header'
 import '~/gridui/web/js/05_widget'
 import '~/gridui/web/js/07_grid'
@@ -25,24 +42,39 @@ req.keys().forEach(function(key) {
 })
 
 let gGrid = null
-let gSelectedWidget = null
+const gSelectedWidgets = []
+let gWidgetAdder = null
+const gUndoStack = new UndoStack()
 
 export default {
   data() {
+    let types = []
+    if (process.client && window.Widget) {
+      types = window.Widget.SUBCLASSES.map((w) => {
+        return {
+          name: w.name,
+          type: w
+        }
+      })
+    }
     return {
       isScaling: false,
       isDragging: false,
-      mouseOffX: 0,
-      mouseOffY: 0
+      widgetTypes: types,
+      clickX: 0,
+      clickY: 0
     }
   },
   mounted() {
     window.nipplejs = nipplejs
     gGrid = new window.Grid(null, 'grid', window.GRID_DATA)
 
+    gWidgetAdder = new WidgetAdder(gGrid, this.onWidgetAdd.bind(this))
+
     this.updateGridCardWidth()
     window.addEventListener('resize', this.updateGridCardWidth.bind(this))
     window.addEventListener('mouseup', this.onGridMouseUp.bind(this))
+    document.addEventListener('keydown', this.onKeyDown.bind(this))
   },
   methods: {
     updateGridCardWidth() {
@@ -51,46 +83,137 @@ export default {
       gGrid.onResize()
     },
     onGridMouseDown(ev) {
-      if (gSelectedWidget !== null) {
-        gSelectedWidget.el.classList.remove('grid-widget-active')
-        gSelectedWidget = null
-      }
-      gSelectedWidget = gGrid.getWidgetAtPos(ev.clientX, ev.clientY)
-      if (gSelectedWidget !== null) {
-        gSelectedWidget.el.classList.add('grid-widget-active')
+      if (ev.button !== 0) return
 
-        const rect = gSelectedWidget.el.getBoundingClientRect()
-        if (
-          Math.abs(rect.right - ev.clientX) < 12 &&
-          Math.abs(rect.bottom - ev.clientY) < 12
-        ) {
-          this.isScaling = true
-          this.mouseOffX = ev.clientX - rect.right
-          this.mouseOffY = ev.clientY - rect.bottom
-        } else {
-          this.isDragging = true
-          this.mouseOffX = ev.clientX - rect.left
-          this.mouseOffY = ev.clientY - rect.top
+      this.clickX = ev.clientX
+      this.clickY = ev.clientY
+
+      const multiple = ev.shiftKey || ev.ctrlKey
+
+      const w = gGrid.getWidgetAtPos(ev.clientX, ev.clientY)
+      if (w === null) return
+
+      const idx = gSelectedWidgets.indexOf(w)
+      if (idx !== -1) gSelectedWidgets.splice(idx, 1)
+      else w.el.classList.add('grid-widget-active')
+      gSelectedWidgets.push(w)
+
+      const rect = w.el.getBoundingClientRect()
+      if (
+        !multiple &&
+        Math.abs(rect.right - ev.clientX) < 12 &&
+        Math.abs(rect.bottom - ev.clientY) < 12
+      ) {
+        this.isScaling = true
+        this.clearSelection(1)
+        w.mouseOffX = ev.clientX - rect.right
+        w.mouseOffY = ev.clientY - rect.bottom
+        w.origPos = w.pos()
+      } else {
+        this.isDragging = true
+        for (const w of gSelectedWidgets) {
+          const rect = w.el.getBoundingClientRect()
+          w.mouseOffX = ev.clientX - rect.left
+          w.mouseOffY = ev.clientY - rect.top
+          w.origPos = w.pos()
         }
       }
     },
     onGridMouseUp(ev) {
+      if (!this.isDragging && !this.isScaling) return
+
+      const moves = []
+      for (const w of gSelectedWidgets) {
+        if (!w.pos().equals(w.origPos)) {
+          moves.push(new MoveWidget(w, w.origPos))
+        }
+        delete w.mouseOffX
+        delete w.mouseOffY
+        delete w.origPos
+      }
+      gUndoStack.push(...moves)
+
+      const multiple = ev.shiftKey || ev.ctrlKey
+      if (
+        !multiple &&
+        Math.abs(this.clickX - ev.clientX) < 4 &&
+        Math.abs(this.clickY - ev.clientY) < 4
+      ) {
+        this.clearSelection(1)
+      }
+
       this.isDragging = false
       this.isScaling = false
     },
     onGridMouseMove(ev) {
-      if (this.isDragging) {
-        gGrid.tryMoveWidget(
-          gSelectedWidget,
-          ev.clientX - this.mouseOffX,
-          ev.clientY - this.mouseOffY
-        )
-      } else if (this.isScaling) {
-        gGrid.tryScaleWidget(
-          gSelectedWidget,
-          ev.clientX - this.mouseOffX,
-          ev.clientY - this.mouseOffY
-        )
+      if (!this.isDragging && !this.isScaling) return
+
+      const method = this.isDragging
+        ? gGrid.tryMoveWidget
+        : gGrid.tryScaleWidget
+      for (const w of gSelectedWidgets) {
+        if (
+          method.call(
+            gGrid,
+            w,
+            ev.clientX - w.mouseOffX,
+            ev.clientY - w.mouseOffY
+          )
+        ) {
+          this.clickX = 0
+          this.clickY = 0
+        }
+      }
+    },
+    clearSelection(keepCount) {
+      if (gSelectedWidgets.length < 1 + keepCount) return
+      const removed = gSelectedWidgets.splice(
+        0,
+        gSelectedWidgets.length - keepCount
+      )
+      for (const w of removed) {
+        w.el.classList.remove('grid-widget-active')
+      }
+    },
+    onAddWidgetDown(ev, widgetType) {
+      gWidgetAdder.onAddWidgetDown(ev, widgetType)
+    },
+    onWidgetAdd(name, x, y, w, h) {
+      const widget = new window[name](gGrid, (Math.random() * 10000) | 0)
+      widget.applyState({
+        ...DefaultWidgetStates[name],
+        x,
+        y,
+        w,
+        h
+      })
+      gUndoStack.push(new AddWidget(gGrid, widget))
+    },
+    onKeyDown(ev) {
+      if (this.isDragging || this.isScaling) return
+
+      switch (ev.key) {
+        case 'Delete': {
+          const ops = []
+          for (const w of gSelectedWidgets) {
+            ops.push(new DeleteWidget(gGrid, w))
+          }
+          gUndoStack.push(...ops)
+          this.clearSelection(0)
+          break
+        }
+        case 'z':
+          if (!ev.ctrlKey) return
+          if (ev.shiftKey) {
+            gUndoStack.redo()
+          } else {
+            gUndoStack.undo()
+          }
+          break
+        case 'y':
+          if (!ev.ctrlKey) return
+          gUndoStack.redo()
+          break
       }
     }
   }
@@ -111,6 +234,14 @@ export default {
   bottom: 0;
   left: 0;
   width: 250px;
+}
+
+.add-button {
+  cursor: grab;
+
+  &:active {
+    cursor: grabbing;
+  }
 }
 
 #grid-card {
@@ -138,7 +269,7 @@ export default {
     bottom: 0px;
     padding: 4px;
     margin: 1px;
-    z-index: 1000;
+    z-index: 10;
     border-bottom: 2px solid #666;
     border-right: 2px solid #666;
     content: '';

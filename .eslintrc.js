@@ -18,7 +18,10 @@ module.exports = {
   // add your custom rules here
   rules: {
     'spaced-comment': 'warn',
-    'prettier/prettier': 'warn'
+    'prettier/prettier': 'warn',
+    'no-unused-vars': 'warn',
+    'object-shorthand': 'off',
+    'no-useless-return': 'warn'
   },
   overrides: [
     {

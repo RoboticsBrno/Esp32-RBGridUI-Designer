@@ -1,1 +1,5 @@
+.git
+.nuxt
+dist
+
 gridui/*
