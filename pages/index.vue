@@ -1,6 +1,6 @@
 <template>
   <div
-    class="blue-grey lighten-4 page-container d-flex justify-space-between pa-1"
+    class="blue-grey lighten-4 layout-container d-flex justify-space-between pa-1"
   >
     <v-card class="pa-2" width="200px">
       <v-card-title>Widgets</v-card-title>
@@ -288,11 +288,15 @@ export default {
 </script>
 
 <style lang="scss">
-.page-container {
+.layout-container {
   position: absolute;
   top: 0;
   bottom: 0;
-  width: 100%;
+  max-width: 1920px;
+  margin-left: auto;
+  margin-right: auto;
+  left: 0;
+  right: 0;
 }
 
 .add-button {
@@ -317,22 +321,31 @@ export default {
   pointer-events: none;
   user-select: none;
 
-  border: 2px dashed #666 !important;
-
-  &:after {
+  &:before {
     position: absolute;
     right: 0px;
     bottom: 0px;
     padding: 4px;
-    margin: 1px;
+    margin: 4px;
     z-index: 10;
     border-bottom: 2px solid #666;
     border-right: 2px solid #666;
     content: '';
   }
+
+  &:after {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    border: 2px dashed #666 !important;
+    z-index: 10;
+    content: '';
+  }
 }
 
-.grid-widget-active {
+.grid-widget-active:after {
   border: 3px dashed red !important;
 }
 </style>
