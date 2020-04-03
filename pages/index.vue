@@ -1,27 +1,48 @@
 <template>
-  <div class="blue-grey lighten-4 container">
-    <v-card id="widget-list" class="px-2 py-12">
-      <v-btn
-        v-for="t in widgetTypes"
-        :key="t.name"
-        block
-        text
-        color="primary"
-        class="justify-start add-button"
-        large
-        @mousedown="onAddWidgetDown($event, t.type)"
-      >
-        {{ t.name }}
-      </v-btn>
+  <div
+    class="blue-grey lighten-4 page-container d-flex justify-space-between pa-1"
+  >
+    <v-card class="pa-2" width="200px">
+      <v-card-title>Widgets</v-card-title>
+
+      <client-only>
+        <v-btn
+          v-for="t in widgetTypes"
+          :key="t.name"
+          block
+          text
+          color="primary"
+          class="justify-start add-button"
+          large
+          @mousedown="onAddWidgetDown($event, t.type)"
+        >
+          {{ t.name }}
+        </v-btn>
+      </client-only>
     </v-card>
 
-    <v-card id="grid-card">
-      <div
-        id="grid"
-        @mousedown="onGridMouseDown"
-        @mousemove="onGridMouseMove"
-      ></div>
+    <div
+      id="grid-wrapper"
+      class="d-flex align-center justify-center my-12 mx-6"
+      style="flex: 3 1 0px !important"
+    >
+      <v-card id="grid-card">
+        <div
+          id="grid"
+          @mousedown="onGridMouseDown"
+          @mousemove="onGridMouseMove"
+        ></div>
+      </v-card>
+    </div>
+
+    <v-card class="pa-2" width="250px">
+      <v-card-title>Properties</v-card-title>
     </v-card>
+
+    <div class="d-flex flex-column ms-2" style="heigth: 100%; flex-grow: 4">
+      <v-card class="pa-2 mb-1 flex-grow-1"> </v-card>
+      <v-card class="pa-2 mt-1 flex-grow-1"> </v-card>
+    </div>
   </div>
 </template>
 
@@ -78,9 +99,33 @@ export default {
   },
   methods: {
     updateGridCardWidth() {
-      const el = document.getElementById('grid-card')
-      el.style.width = (el.getBoundingClientRect().height / 16) * 9 + 'px'
-      gGrid.onResize()
+      const card = document.getElementById('grid-card')
+
+      const calcDimensions = () => {
+        const wrapper = document.getElementById('grid-wrapper')
+        const rect = wrapper.getBoundingClientRect()
+
+        let width = rect.width
+        let height = (rect.width / 9) * 16
+        if (height > rect.height) {
+          width = (rect.height / 16) * 9
+          height = rect.height
+        }
+
+        card.style.width = width + 'px'
+        card.style.height = height + 'px'
+
+        gGrid.onResize()
+      }
+
+      if (
+        card.style.removeProperty('width') === '' &&
+        card.style.removeProperty('height') === ''
+      ) {
+        calcDimensions()
+      } else {
+        setTimeout(calcDimensions, 0)
+      }
     },
     onGridMouseDown(ev) {
       if (ev.button !== 0) return
@@ -227,7 +272,7 @@ export default {
         widgets.push({
           uuid: w.uuid,
           type: w.constructor.name,
-          state: w.getState(),
+          state: w.getState()
         })
       }
 
@@ -243,19 +288,11 @@ export default {
 </script>
 
 <style lang="scss">
-.container {
+.page-container {
   position: absolute;
   top: 0;
   bottom: 0;
   width: 100%;
-}
-
-#widget-list {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  left: 0;
-  width: 250px;
 }
 
 .add-button {
@@ -267,10 +304,7 @@ export default {
 }
 
 #grid-card {
-  position: absolute;
-  top: 10%;
-  bottom: 10%;
-  left: 350px;
+  margin: 50px 0px;
   overflow: hidden;
 }
 
