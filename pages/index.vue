@@ -220,6 +220,23 @@ export default {
           gUndoStack.redo()
           break
       }
+    },
+    getLayout() {
+      const widgets = []
+      for (const w of gGrid.widgets) {
+        widgets.push({
+          uuid: w.uuid,
+          type: w.constructor.name,
+          state: w.getState(),
+        })
+      }
+
+      return {
+        cols: gGrid.COLS,
+        rows: gGrid.ROWS,
+        enableSplitting: gGrid.enableSplitting,
+        widgets: widgets
+      }
     }
   }
 }
