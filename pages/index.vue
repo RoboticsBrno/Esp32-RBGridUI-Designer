@@ -215,6 +215,7 @@ export default {
         }
       }
       this.selectedWidgets.push(w)
+      this.scheduleCodeUpdate()
 
       const rect = w.el.getBoundingClientRect()
       if (
@@ -364,7 +365,7 @@ export default {
       this.layout = layout
     },
     updateCpp() {
-      this.cppCode = CppGenerator(gGrid.widgets)
+      this.cppCode = CppGenerator(gGrid.widgets, this.selectedWidgets)
     },
     onPropertyChanged(name, value) {
       if (this.selectedWidgets.length !== 1) return

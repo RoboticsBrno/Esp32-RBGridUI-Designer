@@ -57,7 +57,7 @@ function formatProperty(name, value) {
   return res
 }
 
-function processWidget(widget) {
+function processWidget(widget, isSelected) {
   const type = widget.constructor.name
   const proto = Object.getPrototypeOf(widget)
 
@@ -74,7 +74,12 @@ function processWidget(widget) {
       res += `, ${formatValue(mainValue)}`
     }
   }
-  res += ')\n'
+
+  if (isSelected) {
+    res += ') // <-- selected\n'
+  } else {
+    res += ')\n'
+  }
 
   for (const [name, prop] of Object.entries(proto.PROPERTIES)) {
     if (coordNames.includes(name) || prop.main) continue
@@ -89,10 +94,10 @@ function processWidget(widget) {
   return res
 }
 
-export default function(widgets) {
+export default function(widgets, selectedWidgets) {
   let res = ''
   for (const w of widgets) {
-    res += processWidget(w)
+    res += processWidget(w, selectedWidgets.includes(w))
   }
   return res
 }

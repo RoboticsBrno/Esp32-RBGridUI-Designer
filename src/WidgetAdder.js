@@ -52,8 +52,8 @@ export default class {
     )
 
     if (
-      x > -this.widget.w + 1 &&
-      y > -this.widget.h + 1 &&
+      x > -this.widget.w &&
+      y > -this.widget.h &&
       x < this.grid.COLS &&
       y < this.grid.ROWS
     ) {

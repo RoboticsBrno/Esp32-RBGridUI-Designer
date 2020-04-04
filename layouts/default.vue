@@ -1,9 +1,9 @@
 <template>
   <v-app light>
     <v-content class="blue-grey lighten-4">
-      <client-side>
+      <client-only>
         <nuxt />
-      </client-side>
+      </client-only>
       <notifications
         group="info"
         type="info"
