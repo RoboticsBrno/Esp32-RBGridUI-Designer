@@ -139,8 +139,10 @@ export default {
     }
   },
   mounted() {
+    if (gGrid !== null) return
     window.nipplejs = nipplejs
-    gGrid = new window.Grid(null, 'grid', window.GRID_DATA)
+
+    gGrid = new window.Grid(null, 'grid', this.loadLayout())
 
     gWidgetAdder = new WidgetAdder(gGrid, this.onWidgetAdd.bind(this))
 
@@ -152,6 +154,18 @@ export default {
     this.scheduleCodeUpdate()
   },
   methods: {
+    loadLayout() {
+      const saved = window.localStorage.getItem('layout')
+      if (saved === null) {
+        return {
+          cols: 12,
+          rows: 18,
+          enableSplitting: true,
+          widgets: []
+        }
+      }
+      return JSON.parse(saved)
+    },
     updateGridCardWidth() {
       const card = document.getElementById('grid-card')
 
@@ -339,12 +353,15 @@ export default {
         })
       }
 
-      this.layout = {
+      const layout = {
         cols: gGrid.COLS,
         rows: gGrid.ROWS,
         enableSplitting: gGrid.enableSplitting,
         widgets: widgets
       }
+
+      window.localStorage.setItem('layout', JSON.stringify(layout))
+      this.layout = layout
     },
     updateCpp() {
       this.cppCode = CppGenerator(gGrid.widgets)

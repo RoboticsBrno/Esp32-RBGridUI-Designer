@@ -1,7 +1,9 @@
 <template>
   <v-app light>
     <v-content class="blue-grey lighten-4">
-      <nuxt />
+      <client-side>
+        <nuxt />
+      </client-side>
       <notifications
         group="info"
         type="info"
