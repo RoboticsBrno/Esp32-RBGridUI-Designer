@@ -46,16 +46,17 @@
     </v-card>
 
     <div class="d-flex flex-column ms-2" style="heigth: 100%; flex: 5 1 0px;">
-      <v-card
-        class="pa-2 mb-1 text-monospace"
-        style="overflow-y: auto; flex: 1 1 0px;"
-      >
-        <pre
-          style="height: 100%; font-size: 10px;"
-          v-text="`${JSON.stringify(layout, null, 4)}`"
-        ></pre>
+      <v-card class="mb-1 code-card" style="flex-grow: 0">
+        <code-display
+          :value="`${JSON.stringify(layout, null, 4)}`"
+          language="javascript"
+          title="Layout JSON"
+          :hideable="true"
+        />
       </v-card>
-      <v-card class="pa-2 mt-1" style="flex: 1 1 0px;"> </v-card>
+      <v-card class="mt-1 code-card">
+        <code-display :value="cppCode" language="cpp" title="Generated C++" />
+      </v-card>
     </div>
   </div>
 </template>
@@ -64,7 +65,9 @@
 import DefaultWidgetStates from '~/src/DefaultWidgetStates'
 import WidgetAdder from '~/src/WidgetAdder'
 import { UndoStack, AddWidget, DeleteWidget, MoveWidget } from '~/src/UndoStack'
+import CppGenerator from '~/src/CppGenerator'
 
+import CodeDisplay from '~/components/CodeDisplay'
 import PropertyTable from '~/components/PropertyTable'
 
 import '~/gridui/web/js/00_header'
@@ -84,6 +87,7 @@ const gUndoStack = new UndoStack()
 
 export default {
   components: {
+    CodeDisplay,
     PropertyTable
   },
   data() {
@@ -103,7 +107,8 @@ export default {
       clickX: 0,
       clickY: 0,
       selectedWidgets: [],
-      layout: []
+      layout: [],
+      cppCode: ''
     }
   },
   computed: {
@@ -144,7 +149,7 @@ export default {
     window.addEventListener('mouseup', this.onGridMouseUp.bind(this))
     document.addEventListener('keydown', this.onKeyDown.bind(this))
 
-    this.updateLayout()
+    this.scheduleCodeUpdate()
   },
   methods: {
     updateGridCardWidth() {
@@ -263,7 +268,7 @@ export default {
           this.clickY = 0
         }
       }
-      this.updateLayout()
+      this.scheduleCodeUpdate()
     },
     clearSelection(keepCount) {
       if (this.selectedWidgets.length < 1 + keepCount) return
@@ -288,7 +293,7 @@ export default {
         h
       })
       gUndoStack.push(new AddWidget(gGrid, widget))
-      this.updateLayout()
+      this.scheduleCodeUpdate()
     },
     onKeyDown(ev) {
       if (this.isDragging || this.isScaling) return
@@ -317,6 +322,13 @@ export default {
           break
       }
     },
+    scheduleCodeUpdate() {
+      if (!process.client) return
+      window.requestAnimationFrame(() => {
+        this.updateLayout()
+        this.updateCpp()
+      })
+    },
     updateLayout() {
       const widgets = []
       for (const w of gGrid.widgets) {
@@ -334,6 +346,9 @@ export default {
         widgets: widgets
       }
     },
+    updateCpp() {
+      this.cppCode = CppGenerator(gGrid.widgets)
+    },
     onPropertyChanged(name, value) {
       if (this.selectedWidgets.length !== 1) return
 
@@ -341,7 +356,7 @@ export default {
       state[name] = value
 
       this.selectedWidgets[0].applyState(state)
-      this.updateLayout()
+      this.scheduleCodeUpdate()
     }
   }
 }
@@ -407,5 +422,11 @@ export default {
 
 .grid-widget-active:after {
   border: 3px dashed red !important;
+}
+
+.code-card {
+  flex: auto;
+  min-height: 50px;
+  overflow: hidden;
 }
 </style>

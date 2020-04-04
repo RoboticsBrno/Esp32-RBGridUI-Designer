@@ -21,7 +21,8 @@ module.exports = {
     'prettier/prettier': 'warn',
     'no-unused-vars': 'warn',
     'object-shorthand': 'off',
-    'no-useless-return': 'warn'
+    'no-useless-return': 'warn',
+    'vue/no-v-html': 'off'
   },
   overrides: [
     {

@@ -6,7 +6,7 @@
       </v-btn>
     </template>
 
-    <v-card>
+    <v-card style="overflow-y: auto" max-height="600px">
       <v-card-title> Editing '{{ name }}' </v-card-title>
 
       <v-simple-table>

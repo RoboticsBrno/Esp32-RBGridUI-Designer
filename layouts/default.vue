@@ -2,6 +2,12 @@
   <v-app light>
     <v-content class="blue-grey lighten-4">
       <nuxt />
+      <notifications
+        group="info"
+        type="info"
+        position="bottom right"
+        class="ma-6"
+      />
     </v-content>
   </v-app>
 </template>
