@@ -313,6 +313,9 @@ export default {
     onKeyDown(ev) {
       if (this.isDragging || this.isScaling) return
 
+      if (ev.target.tagName === 'INPUT' || ev.target.tagName === 'TEXTAREA')
+        return
+
       switch (ev.key) {
         case 'Delete': {
           const ops = []

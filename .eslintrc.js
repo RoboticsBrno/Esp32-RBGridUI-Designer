@@ -22,7 +22,8 @@ module.exports = {
     'no-unused-vars': 'warn',
     'object-shorthand': 'off',
     'no-useless-return': 'warn',
-    'vue/no-v-html': 'off'
+    'vue/no-v-html': 'off',
+    "no-unreachable": "warn",
   },
   overrides: [
     {
