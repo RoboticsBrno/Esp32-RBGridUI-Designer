@@ -27,6 +27,7 @@
       style="flex: 4 1 0px"
     >
       <v-card id="grid-card">
+        <div id="log">This is the log.</div>
         <div
           id="grid"
           @mousedown="onGridMouseDown"
@@ -411,6 +412,7 @@ export default {
 #grid {
   width: 100%;
   height: 100%;
+  position: relative;
 }
 
 .grid-widget {
@@ -443,6 +445,17 @@ export default {
 
 .grid-widget-active:after {
   border: 3px dashed red !important;
+}
+
+#log {
+  padding: 3px;
+  font-size: 11px;
+  font-family: monospace;
+  background-color: black;
+  color: #62f442;
+  white-space: pre-line;
+  overflow-y: auto;
+  height: 60px;
 }
 
 .code-card {
