@@ -443,6 +443,10 @@ export default {
   }
 }
 
+button.grid-widget {
+  background-color: #eee;
+}
+
 .grid-widget-active:after {
   border: 3px dashed red !important;
 }

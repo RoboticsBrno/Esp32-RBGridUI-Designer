@@ -21,7 +21,6 @@ export default class {
     this.widget = new window[type.name](this, 0)
     Object.assign(this.widget.el.style, {
       zIndex: 1000,
-      backgroundColor: 'white',
       cursor: 'grabbing',
       pointerEvents: 'auto'
     })
