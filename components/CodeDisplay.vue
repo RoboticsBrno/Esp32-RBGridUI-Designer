@@ -8,7 +8,7 @@
         <v-btn
           text
           block
-          color="secondary"
+          color="accent"
           @click="showCode = !showCode"
           v-text="showCode ? 'Hide' : 'Show'"
         ></v-btn>

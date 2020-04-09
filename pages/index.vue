@@ -2,7 +2,7 @@
   <div
     class="blue-grey lighten-4 layout-container d-flex justify-space-between pa-1"
   >
-    <v-card width="200px">
+    <v-card width="200px" class="flex-shrink-0">
       <v-card-title>Widgets</v-card-title>
 
       <client-only>
@@ -36,17 +36,21 @@
       </v-card>
     </div>
 
-    <v-card width="250px" class="d-flex py-1 flex-column">
+    <v-card width="250px" class="d-flex py-1 flex-column flex-shrink-0">
       <v-card-title class="pb-0">Properties</v-card-title>
       <div style="overflow-y: auto;" class="flex-grow-1">
         <property-table
           :properties="properties"
-          @prop-changed="onPropertyChanged"
+          @prop-input="onPropertyInput"
+          @prop-change="onPropertyChange"
         />
       </div>
     </v-card>
 
-    <div class="d-flex flex-column ms-2" style="heigth: 100%; flex: 5 1 0px;">
+    <div
+      class="d-flex flex-column ms-2"
+      style="heigth: 100%; flex: 5 1 0px; overflow: hidden;"
+    >
       <v-card class="mb-1 code-card" style="flex-grow: 0">
         <code-display
           :value="`${JSON.stringify(layout, null, 4)}`"
@@ -66,7 +70,7 @@
 import DefaultWidgetStates from '~/src/DefaultWidgetStates'
 import WidgetAdder from '~/src/WidgetAdder'
 import { UndoStack, AddWidget, DeleteWidget, MoveWidget } from '~/src/UndoStack'
-import CppGenerator from '~/src/CppGenerator'
+import HeaderCppGenerator from '~/src/cppgenerator/Header'
 
 import CodeDisplay from '~/components/CodeDisplay'
 import PropertyTable from '~/components/PropertyTable'
@@ -145,6 +149,12 @@ export default {
 
     gGrid = new window.Grid(null, 'grid', this.loadLayout())
 
+    for (const w of gGrid.widgets) {
+      if (w.id === undefined) {
+        w.id = this.generateId(w.constructor.name)
+      }
+    }
+
     gWidgetAdder = new WidgetAdder(gGrid, this.onWidgetAdd.bind(this))
 
     this.updateGridCardWidth()
@@ -165,6 +175,7 @@ export default {
           widgets: []
         }
       }
+
       return JSON.parse(saved)
     },
     updateGridCardWidth() {
@@ -301,8 +312,10 @@ export default {
     },
     onWidgetAdd(name, x, y, w, h) {
       const widget = new window[name](gGrid, (Math.random() * 10000) | 0)
+      const id = this.generateId(name)
       widget.applyState({
         ...DefaultWidgetStates[name],
+        id,
         x,
         y,
         w,
@@ -325,6 +338,7 @@ export default {
           }
           gUndoStack.push(...ops)
           this.clearSelection(0)
+          this.scheduleCodeUpdate()
           break
         }
         case 'z':
@@ -334,10 +348,12 @@ export default {
           } else {
             gUndoStack.undo()
           }
+          this.scheduleCodeUpdate()
           break
         case 'y':
           if (!ev.ctrlKey) return
           gUndoStack.redo()
+          this.scheduleCodeUpdate()
           break
       }
     },
@@ -369,9 +385,9 @@ export default {
       this.layout = layout
     },
     updateCpp() {
-      this.cppCode = CppGenerator(gGrid.widgets, this.selectedWidgets)
+      this.cppCode = HeaderCppGenerator(gGrid.widgets, this.layout)
     },
-    onPropertyChanged(name, value) {
+    onPropertyInput(name, value) {
       if (this.selectedWidgets.length !== 1) return
 
       const state = {}
@@ -379,6 +395,31 @@ export default {
 
       this.selectedWidgets[0].applyState(state)
       this.scheduleCodeUpdate()
+    },
+    onPropertyChange(name, value) {
+      if (this.selectedWidgets.length !== 1) return
+
+      if (name === 'id') {
+        value = value.replace(/[^A-Za-z0-9_]/g, '')
+        if (!/^[A-Za-z]/.test(value)) value = 'w' + value
+        this.onPropertyInput(name, this.generateId(value, true))
+      }
+    },
+    generateId(typeName, allowSameAsTypeName) {
+      const widgetIds = Object.fromEntries(
+        gGrid.widgets.map((w) => [w.id, true])
+      )
+
+      if (allowSameAsTypeName === true && !(typeName in widgetIds)) {
+        return typeName
+      }
+
+      for (let i = 1; true; ++i) {
+        const id = `${typeName}${i}`
+        if (!(id in widgetIds)) {
+          return id
+        }
+      }
     }
   }
 }

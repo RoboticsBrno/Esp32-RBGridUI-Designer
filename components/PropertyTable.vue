@@ -5,7 +5,11 @@
         <tr :key="section">
           <th colspan="2" class="primary--text pb-1 pt-3">{{ section }}</th>
         </tr>
-        <tr v-for="(prop, name) in props" :key="name">
+        <tr
+          v-for="(prop, name) in props"
+          :key="name"
+          :class="{ 'id-row': name === 'id' }"
+        >
           <td class="text-right property-name" style="width: 90px">
             <b>{{ name }}</b>
           </td>
@@ -14,6 +18,7 @@
               v-if="prop.editable && prop.type === Boolean"
               v-model="models[name]"
               type="checkbox"
+              @change="onValueChange(name)"
             />
             <input
               v-else-if="prop.editable && prop.type === Number"
@@ -21,12 +26,14 @@
               type="number"
               step="0.5"
               style="width: 100%"
+              @change="onValueChange(name)"
             />
             <input
               v-else-if="prop.editable && prop.type === String"
               v-model="models[name]"
               type="text"
               style="width: 100%"
+              @change="onValueChange(name)"
             />
             <object-property-editor
               v-else-if="prop.editable && prop.type === Object"
@@ -85,7 +92,7 @@ export default {
       handler() {
         for (const [key, curVal] of Object.entries(this.models)) {
           if (!this.propEquals(curVal, this.originalValues[key])) {
-            this.$emit('prop-changed', key, curVal)
+            this.$emit('prop-input', key, curVal)
             this.$set(this.originalValues, key, curVal)
           }
         }
@@ -107,6 +114,9 @@ export default {
         }
       }
       return vals
+    },
+    onValueChange(name) {
+      this.$emit('prop-change', name, this.models[name])
     }
   }
 }
@@ -131,6 +141,14 @@ export default {
 
   input {
     vertical-align: middle;
+  }
+}
+
+.id-row {
+  font-size: 105%;
+  td:nth-child(2) {
+    font-weight: bold;
+    color: var(--v-secondary-base);
   }
 }
 
