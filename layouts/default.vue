@@ -10,6 +10,13 @@
         position="bottom right"
         class="ma-6"
       />
+      <notifications
+        group="success"
+        type="success"
+        :classes="['vue-notification', 'success']"
+        position="bottom right"
+        class="ma-6"
+      />
     </v-content>
   </v-app>
 </template>

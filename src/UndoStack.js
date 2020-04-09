@@ -1,4 +1,8 @@
 class UndoOperation {
+  constructor(grid) {
+    this.grid = grid
+  }
+
   undo() {
     throw new Error('Not implemented')
   }
@@ -10,50 +14,81 @@ class UndoOperation {
 
 export class DeleteWidget extends UndoOperation {
   constructor(grid, widget) {
-    super()
-    this.grid = grid
-    this.widget = widget
+    super(grid)
+    this.uuid = widget.uuid
+    this.type = widget.constructor.name
+    this.state = null
   }
 
   undo() {
-    this.grid.addWidgetConstructed(this.widget)
+    if (this.state !== null) {
+      this.grid.addWidget(this.uuid, this.type, this.state)
+      this.state = null
+    }
   }
 
   redo() {
-    this.grid.removeWidget(this.widget)
+    const w = this.grid.getWidgetByUuid(this.uuid)
+    if (w === null) return
+    this.state = w.getState()
+    this.grid.removeWidget(w)
   }
 }
 
-export class AddWidget extends UndoOperation {
-  constructor(grid, widget) {
-    super()
-    this.grid = grid
-    this.widget = widget
+export class AddWidget extends DeleteWidget {
+  constructor(grid, uuid, type, state) {
+    super(grid, {})
+    this.uuid = uuid
+    this.type = type
+    this.state = state
   }
 
   undo() {
-    this.grid.removeWidget(this.widget)
+    super.redo()
   }
 
   redo() {
-    this.grid.addWidgetConstructed(this.widget)
+    super.undo()
   }
 }
 
 export class MoveWidget extends UndoOperation {
-  constructor(widget, origPos) {
-    super()
-    this.widget = widget
+  constructor(grid, widget, origPos) {
+    super(grid)
+    this.uuid = widget.uuid
     this.newPos = widget.pos()
     this.origPos = origPos
   }
 
   undo() {
-    this.widget.applyState(this.origPos)
+    const w = this.grid.getWidgetByUuid(this.uuid)
+    if (w !== null) {
+      w.applyState(this.origPos)
+    }
   }
 
   redo() {
-    this.widget.applyState(this.newPos)
+    const w = this.grid.getWidgetByUuid(this.uuid)
+    if (w !== null) {
+      w.applyState(this.newPos)
+    }
+  }
+}
+
+export class ReplaceLayout extends UndoOperation {
+  constructor(grid, original, newer) {
+    super()
+    this.grid = grid
+    this.original = original
+    this.newer = newer
+  }
+
+  undo() {
+    this.grid.reset(this.original)
+  }
+
+  redo() {
+    this.grid.reset(this.newer)
   }
 }
 
@@ -71,6 +106,11 @@ export class UndoStack {
       this.stack.length - this.currentIdx,
       operations
     )
+
+    if (this.stack.length > 32) {
+      this.stack.shift()
+    }
+
     this.currentIdx = this.stack.length
     for (const op of operations) {
       op.redo()

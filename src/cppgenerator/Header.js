@@ -46,7 +46,22 @@ function genBuilder(widget) {
   return res
 }
 
-export default function(widgets, layout) {
+export function parse(text) {
+  const exps = [/^\/\/ Layout: (.+)$/m, /^\s*({\s*"[\s\S]+)/]
+  for (const exp of exps) {
+    const match = text.match(exp)
+    if (match === null) {
+      continue
+    }
+
+    try {
+      return JSON.parse(match[1])
+    } catch (e) {}
+  }
+  return null
+}
+
+export function generate(widgets, layout) {
   const builder = widgets.map((w) => genBuilder(w)).join(',\n        ')
   const builderMembers = widgets.map((w) => genMember(w, '&')).join('\n    ')
   const layoutMembers = widgets.map((w) => genMember(w, '')).join('\n    ')

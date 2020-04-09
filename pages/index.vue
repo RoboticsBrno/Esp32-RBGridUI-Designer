@@ -3,6 +3,7 @@
     class="blue-grey lighten-4 layout-container d-flex justify-space-between pa-1"
   >
     <v-card width="200px" class="flex-shrink-0">
+      <import-dialog class="mt-4" @import-layout="onImportLayout" />
       <v-card-title>Widgets</v-card-title>
 
       <client-only>
@@ -69,10 +70,17 @@
 <script>
 import DefaultWidgetStates from '~/src/DefaultWidgetStates'
 import WidgetAdder from '~/src/WidgetAdder'
-import { UndoStack, AddWidget, DeleteWidget, MoveWidget } from '~/src/UndoStack'
-import HeaderCppGenerator from '~/src/cppgenerator/Header'
+import {
+  UndoStack,
+  AddWidget,
+  DeleteWidget,
+  MoveWidget,
+  ReplaceLayout
+} from '~/src/UndoStack'
+import * as Header from '~/src/cppgenerator/Header'
 
 import CodeDisplay from '~/components/CodeDisplay'
+import ImportDialog from '~/components/ImportDialog'
 import PropertyTable from '~/components/PropertyTable'
 
 import '~/gridui/web/js/00_header'
@@ -82,9 +90,7 @@ import '~/gridui/web/js/07_grid'
 const nipplejs = process.client ? require('nipplejs') : undefined
 
 const req = require.context('~/gridui/web/js/widgets', true, /\.js$/)
-req.keys().forEach(function(key) {
-  req(key)
-})
+req.keys().forEach((key) => req(key))
 
 let gGrid = null
 let gWidgetAdder = null
@@ -93,6 +99,7 @@ const gUndoStack = new UndoStack()
 export default {
   components: {
     CodeDisplay,
+    ImportDialog,
     PropertyTable
   },
   data() {
@@ -256,7 +263,7 @@ export default {
       const moves = []
       for (const w of this.selectedWidgets) {
         if (!w.pos().equals(w.origPos)) {
-          moves.push(new MoveWidget(w, w.origPos))
+          moves.push(new MoveWidget(gGrid, w, w.origPos))
         }
         delete w.mouseOffX
         delete w.mouseOffY
@@ -311,17 +318,22 @@ export default {
       gWidgetAdder.onAddWidgetDown(ev, widgetType)
     },
     onWidgetAdd(name, x, y, w, h) {
-      const widget = new window[name](gGrid, (Math.random() * 10000) | 0)
+      let uuid
+      do {
+        uuid = (Math.random() * 1000000) | 0
+      } while (gGrid.getWidgetByUuid(uuid) !== null)
+
       const id = this.generateId(name)
-      widget.applyState({
+      const state = {
         ...DefaultWidgetStates[name],
         id,
         x,
         y,
         w,
         h
-      })
-      gUndoStack.push(new AddWidget(gGrid, widget))
+      }
+
+      gUndoStack.push(new AddWidget(gGrid, uuid, name, state))
       this.scheduleCodeUpdate()
     },
     onKeyDown(ev) {
@@ -357,6 +369,10 @@ export default {
           break
       }
     },
+    onImportLayout(layout) {
+      gUndoStack.push(new ReplaceLayout(gGrid, this.layout, layout))
+      this.scheduleCodeUpdate()
+    },
     scheduleCodeUpdate() {
       if (!process.client) return
       window.requestAnimationFrame(() => {
@@ -385,7 +401,7 @@ export default {
       this.layout = layout
     },
     updateCpp() {
-      this.cppCode = HeaderCppGenerator(gGrid.widgets, this.layout)
+      this.cppCode = Header.generate(gGrid.widgets, this.layout)
     },
     onPropertyInput(name, value) {
       if (this.selectedWidgets.length !== 1) return
