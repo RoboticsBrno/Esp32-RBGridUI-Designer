@@ -133,7 +133,7 @@ export class UndoStack {
       operations
     )
 
-    if (this.stack.length > 32) {
+    if (this.stack.length > 64) {
       this.stack.shift()
     }
 
