@@ -450,10 +450,22 @@ export default {
   overflow: hidden;
 }
 
+#log {
+  padding: 3px;
+  font-size: 11px;
+  font-family: monospace;
+  background-color: black;
+  color: #62f442;
+  white-space: pre-line;
+  overflow-y: auto;
+  height: 60px;
+}
+
 #grid {
+  position: absolute;
   width: 100%;
-  height: 100%;
-  position: relative;
+  top: 60px;
+  bottom: 0px;
 }
 
 .grid-widget {
@@ -490,17 +502,6 @@ button.grid-widget {
 
 .grid-widget-active:after {
   border: 3px dashed red !important;
-}
-
-#log {
-  padding: 3px;
-  font-size: 11px;
-  font-family: monospace;
-  background-color: black;
-  color: #62f442;
-  white-space: pre-line;
-  overflow-y: auto;
-  height: 60px;
 }
 
 .code-card {
