@@ -39,6 +39,7 @@
               v-else-if="prop.editable && prop.type === Object"
               v-model="models[name]"
               :name="name"
+              @change="onValueChange(name)"
             />
             <div
               v-else
@@ -71,19 +72,27 @@ export default {
     properties: {
       type: Object,
       required: true
+    },
+    uuid: {
+      type: Number,
+      required: true
     }
   },
   data() {
     return {
-      originalValues: {},
+      originalInput: {},
+      originalChange: {},
       models: {}
     }
   },
   watch: {
+    uuid() {
+      if (this.uuid !== -1) this.originalChange = this.copyProperties()
+    },
     properties: {
       deep: true,
       handler() {
-        this.originalValues = this.copyProperties()
+        this.originalInput = this.copyProperties()
         this.models = this.copyProperties()
       }
     },
@@ -91,9 +100,9 @@ export default {
       deep: true,
       handler() {
         for (const [key, curVal] of Object.entries(this.models)) {
-          if (!this.propEquals(curVal, this.originalValues[key])) {
+          if (!this.propEquals(curVal, this.originalInput[key])) {
             this.$emit('prop-input', key, curVal)
-            this.$set(this.originalValues, key, curVal)
+            this.$set(this.originalInput, key, curVal)
           }
         }
       }
@@ -116,7 +125,12 @@ export default {
       return vals
     },
     onValueChange(name) {
-      this.$emit('prop-change', name, this.models[name])
+      const curVal = this.models[name]
+      const oldVal = this.originalChange[name]
+      if (!this.propEquals(curVal, oldVal)) {
+        this.$emit('prop-change', name, curVal, oldVal)
+        this.$set(this.originalChange, name, curVal)
+      }
     }
   }
 }

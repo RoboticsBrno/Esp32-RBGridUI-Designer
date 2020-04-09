@@ -1,5 +1,5 @@
 <template>
-  <v-dialog width="500" style="z-index: 1000">
+  <v-dialog v-model="show" width="500" style="z-index: 1000">
     <template v-slot:activator="{ on }">
       <v-btn text color="primary" small v-on="on">
         edit
@@ -52,6 +52,9 @@
 </template>
 
 <script>
+import deepEqual from 'deep-equal'
+import clone from 'rfdc'
+
 export default {
   props: {
     name: {
@@ -64,7 +67,20 @@ export default {
     }
   },
   data() {
-    return {}
+    return {
+      show: false,
+      originalValue: null
+    }
+  },
+  watch: {
+    show() {
+      if (!this.show) {
+        if (!deepEqual(this.value, this.originalValue))
+          this.$emit('change', this.value)
+      } else {
+        this.originalValue = clone()(this.value)
+      }
+    }
   },
   methods: {
     onKeyChange(old, cur) {

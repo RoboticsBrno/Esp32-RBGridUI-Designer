@@ -42,6 +42,7 @@
       <div style="overflow-y: auto;" class="flex-grow-1">
         <property-table
           :properties="properties"
+          :uuid="selectedUuid"
           @prop-input="onPropertyInput"
           @prop-change="onPropertyChange"
         />
@@ -70,13 +71,7 @@
 <script>
 import DefaultWidgetStates from '~/src/DefaultWidgetStates'
 import WidgetAdder from '~/src/WidgetAdder'
-import {
-  UndoStack,
-  AddWidget,
-  DeleteWidget,
-  MoveWidget,
-  ReplaceLayout
-} from '~/src/UndoStack'
+import * as Undo from '~/src/UndoStack'
 import * as Header from '~/src/cppgenerator/Header'
 
 import CodeDisplay from '~/components/CodeDisplay'
@@ -94,7 +89,7 @@ req.keys().forEach((key) => req(key))
 
 let gGrid = null
 let gWidgetAdder = null
-const gUndoStack = new UndoStack()
+const gUndoStack = new Undo.UndoStack()
 
 export default {
   components: {
@@ -148,6 +143,12 @@ export default {
       const res = { General: general }
       res[w.constructor.name] = perWidget
       return res
+    },
+    selectedUuid() {
+      if (this.selectedWidgets.length === 1) {
+        return this.selectedWidgets[0].uuid
+      }
+      return -1
     }
   },
   mounted() {
@@ -263,7 +264,7 @@ export default {
       const moves = []
       for (const w of this.selectedWidgets) {
         if (!w.pos().equals(w.origPos)) {
-          moves.push(new MoveWidget(gGrid, w, w.origPos))
+          moves.push(new Undo.MoveWidget(gGrid, w, w.origPos))
         }
         delete w.mouseOffX
         delete w.mouseOffY
@@ -333,7 +334,7 @@ export default {
         h
       }
 
-      gUndoStack.push(new AddWidget(gGrid, uuid, name, state))
+      gUndoStack.push(new Undo.AddWidget(gGrid, uuid, name, state))
       this.scheduleCodeUpdate()
     },
     onKeyDown(ev) {
@@ -346,7 +347,7 @@ export default {
         case 'Delete': {
           const ops = []
           for (const w of this.selectedWidgets) {
-            ops.push(new DeleteWidget(gGrid, w))
+            ops.push(new Undo.DeleteWidget(gGrid, w))
           }
           gUndoStack.push(...ops)
           this.clearSelection(0)
@@ -370,7 +371,7 @@ export default {
       }
     },
     onImportLayout(layout) {
-      gUndoStack.push(new ReplaceLayout(gGrid, this.layout, layout))
+      gUndoStack.push(new Undo.ReplaceLayout(gGrid, this.layout, layout))
       this.scheduleCodeUpdate()
     },
     scheduleCodeUpdate() {
@@ -412,7 +413,7 @@ export default {
       this.selectedWidgets[0].applyState(state)
       this.scheduleCodeUpdate()
     },
-    onPropertyChange(name, value) {
+    onPropertyChange(name, value, oldValue) {
       if (this.selectedWidgets.length !== 1) return
 
       if (name === 'id') {
@@ -420,6 +421,16 @@ export default {
         if (!/^[A-Za-z]/.test(value)) value = 'w' + value
         this.onPropertyInput(name, this.generateId(value, true))
       }
+
+      gUndoStack.push(
+        new Undo.ChangeProperty(
+          gGrid,
+          this.selectedWidgets[0],
+          name,
+          oldValue,
+          value
+        )
+      )
     },
     generateId(typeName, allowSameAsTypeName) {
       const widgetIds = Object.fromEntries(

@@ -1,3 +1,5 @@
+const clone = require('rfdc')()
+
 class UndoOperation {
   constructor(grid) {
     this.grid = grid
@@ -71,6 +73,30 @@ export class MoveWidget extends UndoOperation {
     const w = this.grid.getWidgetByUuid(this.uuid)
     if (w !== null) {
       w.applyState(this.newPos)
+    }
+  }
+}
+
+export class ChangeProperty extends UndoOperation {
+  constructor(grid, widget, name, original, newer) {
+    super(grid)
+    this.uuid = widget.uuid
+    this.name = name
+    this.original = clone(original)
+    this.newer = clone(newer)
+  }
+
+  undo() {
+    const w = this.grid.getWidgetByUuid(this.uuid)
+    if (w !== null) {
+      w.applyState(Object.fromEntries([[this.name, this.original]]))
+    }
+  }
+
+  redo() {
+    const w = this.grid.getWidgetByUuid(this.uuid)
+    if (w !== null) {
+      w.applyState(Object.fromEntries([[this.name, this.newer]]))
     }
   }
 }
