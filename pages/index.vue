@@ -361,17 +361,20 @@ export default {
           } else {
             gUndoStack.undo()
           }
+          this.refreshSelectedWidgets()
           this.scheduleCodeUpdate()
           break
         case 'y':
           if (!ev.ctrlKey) return
           gUndoStack.redo()
+          this.refreshSelectedWidgets()
           this.scheduleCodeUpdate()
           break
       }
     },
     onImportLayout(layout) {
       gUndoStack.push(new Undo.ReplaceLayout(gGrid, this.layout, layout))
+      this.selectedWidgets = []
       this.scheduleCodeUpdate()
     },
     scheduleCodeUpdate() {
@@ -403,6 +406,14 @@ export default {
     },
     updateCpp() {
       this.cppCode = Header.generate(gGrid.widgets, this.layout)
+    },
+    refreshSelectedWidgets() {
+      const filtered = this.selectedWidgets.filter((w) =>
+        gGrid.widgets.includes(w)
+      )
+      if (filtered.length !== this.selectedWidgets.length) {
+        this.selectedWidgets = filtered
+      }
     },
     onPropertyInput(name, value) {
       if (this.selectedWidgets.length !== 1) return
