@@ -115,7 +115,8 @@ export default {
       clickY: 0,
       selectedWidgets: [],
       layout: [],
-      cppCode: ''
+      cppCode: '',
+      updateTimeout: null
     }
   },
   computed: {
@@ -378,11 +379,12 @@ export default {
       this.scheduleCodeUpdate()
     },
     scheduleCodeUpdate() {
-      if (!process.client) return
-      window.requestAnimationFrame(() => {
+      if (!process.client || this.updateTimeout !== null) return
+      this.updateTimeout = setTimeout(() => {
         this.updateLayout()
         this.updateCpp()
-      })
+        this.updateTimeout = null
+      }, 100)
     },
     updateLayout() {
       const widgets = []
