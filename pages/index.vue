@@ -38,8 +38,26 @@
     </div>
 
     <v-card width="250px" class="d-flex py-1 flex-column flex-shrink-0">
-      <v-card-title class="pb-0">Properties</v-card-title>
-      <div style="overflow-y: auto;" class="flex-grow-1">
+      <div class="pa-2 text-right">
+        <v-btn
+          icon
+          title="Undo (Ctrl+Z)"
+          :disabled="!canUndo"
+          @click="onUndoClick"
+        >
+          <v-icon>mdi-undo</v-icon>
+        </v-btn>
+        <v-btn
+          icon
+          title="Redo (Ctrl+Y)"
+          :disabled="!canRedo"
+          @click="onRedoClick"
+        >
+          <v-icon>mdi-redo</v-icon>
+        </v-btn>
+      </div>
+      <v-card-title class="py-0">Properties</v-card-title>
+      <div style="overflow-y: auto;">
         <property-table
           :properties="properties"
           :uuid="selectedUuid"
@@ -47,6 +65,17 @@
           @prop-change="onPropertyChange"
         />
       </div>
+      <v-btn
+        v-if="selectedWidgets.length === 1"
+        text
+        color="accent"
+        class="mt-4"
+        title="You can also press the Delete key on your keyboard."
+        @click="onDeleteClick"
+      >
+        <v-icon>mdi-delete</v-icon>
+        Delete widget
+      </v-btn>
     </v-card>
 
     <div
@@ -89,7 +118,6 @@ req.keys().forEach((key) => req(key))
 
 let gGrid = null
 let gWidgetAdder = null
-const gUndoStack = new Undo.UndoStack()
 
 export default {
   components: {
@@ -116,7 +144,8 @@ export default {
       selectedWidgets: [],
       layout: [],
       cppCode: '',
-      updateTimeout: null
+      updateTimeout: null,
+      undoStack: new Undo.UndoStack()
     }
   },
   computed: {
@@ -150,6 +179,12 @@ export default {
         return this.selectedWidgets[0].uuid
       }
       return -1
+    },
+    canUndo() {
+      return this.undoStack.canUndo()
+    },
+    canRedo() {
+      return this.undoStack.canRedo()
     }
   },
   mounted() {
@@ -271,7 +306,7 @@ export default {
         delete w.mouseOffY
         delete w.origPos
       }
-      gUndoStack.push(...moves)
+      this.undoStack.push(...moves)
 
       const multiple = ev.shiftKey || ev.ctrlKey
       if (
@@ -335,7 +370,7 @@ export default {
         h
       }
 
-      gUndoStack.push(new Undo.AddWidget(gGrid, uuid, name, state))
+      this.undoStack.push(new Undo.AddWidget(gGrid, uuid, name, state))
       this.scheduleCodeUpdate()
     },
     onKeyDown(ev) {
@@ -346,35 +381,44 @@ export default {
 
       switch (ev.key) {
         case 'Delete': {
-          const ops = []
-          for (const w of this.selectedWidgets) {
-            ops.push(new Undo.DeleteWidget(gGrid, w))
-          }
-          gUndoStack.push(...ops)
-          this.clearSelection(0)
-          this.scheduleCodeUpdate()
+          this.onDeleteClick()
           break
         }
         case 'z':
           if (!ev.ctrlKey) return
           if (ev.shiftKey) {
-            gUndoStack.redo()
+            this.onRedoClick()
           } else {
-            gUndoStack.undo()
+            this.onUndoClick()
           }
-          this.refreshSelectedWidgets()
-          this.scheduleCodeUpdate()
           break
         case 'y':
           if (!ev.ctrlKey) return
-          gUndoStack.redo()
-          this.refreshSelectedWidgets()
-          this.scheduleCodeUpdate()
+          this.onRedoClick()
           break
       }
     },
+    onDeleteClick() {
+      const ops = []
+      for (const w of this.selectedWidgets) {
+        ops.push(new Undo.DeleteWidget(gGrid, w))
+      }
+      this.undoStack.push(...ops)
+      this.clearSelection(0)
+      this.scheduleCodeUpdate()
+    },
+    onUndoClick() {
+      this.undoStack.undo()
+      this.refreshSelectedWidgets()
+      this.scheduleCodeUpdate()
+    },
+    onRedoClick() {
+      this.undoStack.redo()
+      this.refreshSelectedWidgets()
+      this.scheduleCodeUpdate()
+    },
     onImportLayout(layout) {
-      gUndoStack.push(new Undo.ReplaceLayout(gGrid, this.layout, layout))
+      this.undoStack.push(new Undo.ReplaceLayout(gGrid, this.layout, layout))
       this.selectedWidgets = []
       this.scheduleCodeUpdate()
     },
@@ -435,7 +479,7 @@ export default {
         this.onPropertyInput(name, this.generateId(value, true))
       }
 
-      gUndoStack.push(
+      this.undoStack.push(
         new Undo.ChangeProperty(
           gGrid,
           this.selectedWidgets[0],

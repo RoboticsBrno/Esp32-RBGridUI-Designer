@@ -158,4 +158,12 @@ export class UndoStack {
       op.undo()
     }
   }
+
+  canUndo() {
+    return this.currentIdx > 0
+  }
+
+  canRedo() {
+    return this.currentIdx < this.stack.length
+  }
 }
