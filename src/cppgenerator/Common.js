@@ -9,24 +9,10 @@ export function getPropertyValue(widget, name, prop) {
   }
 
   if (prop.get === undefined) {
-    if (prop.types.length === 1) {
-      return prop.types[0](widget[name])
-    } else {
-      return widget[name]
-    }
+    return prop.type(widget[name])
   } else {
     return prop.get.call(widget)
   }
-}
-
-export function getMainPropertyValue(widget) {
-  const proto = Object.getPrototypeOf(widget)
-  for (const [name, prop] of Object.entries(proto.PROPERTIES)) {
-    if (prop.main) {
-      return getPropertyValue(widget, name, prop)
-    }
-  }
-  return undefined
 }
 
 export function isDefaultPropValue(widget, name, prop) {
@@ -55,4 +41,31 @@ export function formatProperty(name, value, indent) {
     res += `${indent}.${name}(${formatValue(k)}, ${formatValue(v)})\n`
   }
   return res
+}
+
+export function getCppType(prop, isInputArg) {
+  switch (prop.type) {
+    case String:
+      return isInputArg === true ? 'const std::string&' : 'std::string'
+    case Number:
+      return 'float'
+    case Boolean:
+      return 'bool'
+    case Object:
+      return 'std::unique_ptr<rbjson::Object>'
+    default:
+      return 'void* /* TODO: fix type */'
+  }
+}
+
+export function getRbJsonType(prop) {
+  switch (prop.type) {
+    case String:
+    case Number:
+      return prop.type.name
+    case Boolean:
+      return 'Bool'
+    default:
+      return 'Nil/* TODO: fix type */'
+  }
 }

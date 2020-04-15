@@ -166,4 +166,9 @@ export class UndoStack {
   canRedo() {
     return this.currentIdx < this.stack.length
   }
+
+  clear() {
+    this.currentIdx = 0
+    this.stack = []
+  }
 }

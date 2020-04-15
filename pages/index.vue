@@ -4,22 +4,33 @@
   >
     <v-card width="200px" class="flex-shrink-0">
       <import-dialog class="mt-4" @import-layout="onImportLayout" />
+
       <v-card-title>Widgets</v-card-title>
 
-      <client-only>
-        <v-btn
-          v-for="t in widgetTypes"
-          :key="t.name"
-          block
-          text
-          color="primary"
-          class="justify-start add-button"
-          large
-          @mousedown="onAddWidgetDown($event, t.type)"
-        >
-          {{ t.name }}
-        </v-btn>
-      </client-only>
+      <v-btn
+        v-for="t in widgetTypes"
+        :key="t.name"
+        block
+        text
+        color="primary"
+        class="justify-start add-button"
+        large
+        @mousedown="onAddWidgetDown($event, t.type)"
+      >
+        {{ t.name }}
+      </v-btn>
+
+      <v-btn
+        block
+        text
+        color="accent"
+        class="justify-start mt-12"
+        title="Reset the whole designer."
+        @click="onResetClick"
+      >
+        <v-icon>mdi-delete</v-icon>
+        Reset
+      </v-btn>
     </v-card>
 
     <div
@@ -119,6 +130,13 @@ req.keys().forEach((key) => req(key))
 let gGrid = null
 let gWidgetAdder = null
 
+const defaultLayout = {
+  cols: 12,
+  rows: 18,
+  enableSplitting: true,
+  widgets: []
+}
+
 export default {
   components: {
     CodeDisplay,
@@ -159,7 +177,7 @@ export default {
       const proto = Object.getPrototypeOf(w)
       for (const [key, prop] of Object.entries(proto.PROPERTIES)) {
         const val = {
-          type: prop.types[0],
+          type: prop.type,
           value: prop.get ? prop.get.call(w) : w[key],
           editable: prop.editable
         }
@@ -212,12 +230,7 @@ export default {
     loadLayout() {
       const saved = window.localStorage.getItem('layout')
       if (saved === null) {
-        return {
-          cols: 12,
-          rows: 18,
-          enableSplitting: true,
-          widgets: []
-        }
+        return defaultLayout
       }
 
       return JSON.parse(saved)
@@ -503,6 +516,16 @@ export default {
         if (!(id in widgetIds)) {
           return id
         }
+      }
+    },
+    onResetClick() {
+      const ok = window.confirm(
+        'This will reset the whole layout and you will NOT be albe to undo this. Continue?'
+      )
+      if (ok) {
+        gGrid.reset(defaultLayout)
+        this.undoStack.clear()
+        this.scheduleCodeUpdate()
       }
     }
   }

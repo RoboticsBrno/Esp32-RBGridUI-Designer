@@ -8,16 +8,6 @@ function processWidget(widget, isSelected) {
 
   const coordNames = ['x', 'y', 'w', 'h']
   res += coordNames.map((n) => Common.getPropertyValue(widget, n)).join(', ')
-
-  if (type === 'Arm') {
-    res += `, rkArmGetInfo()`
-  } else {
-    const mainValue = Common.getMainPropertyValue(widget)
-    if (mainValue !== undefined) {
-      res += `, ${Common.formatValue(mainValue)}`
-    }
-  }
-
   if (isSelected) {
     res += ') // <-- selected\n'
   } else {
@@ -25,9 +15,14 @@ function processWidget(widget, isSelected) {
   }
 
   for (const [name, prop] of Object.entries(proto.PROPERTIES)) {
-    if (prop.ignoreInBuilder || prop.main) continue
+    if (prop.ignoreInBuilder) continue
 
     if (Common.isDefaultPropValue(widget, name, prop)) continue
+
+    if (type === 'Arm' && name === 'info') {
+      res += `    .info(rkArmGetInfo())\n`
+      continue
+    }
 
     const val = Common.getPropertyValue(widget, name, prop)
     res += Common.formatProperty(name, val, '    ')
