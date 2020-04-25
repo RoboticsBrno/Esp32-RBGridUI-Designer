@@ -215,6 +215,9 @@ export default {
       if (w.id === undefined) {
         w.id = this.generateId(w.constructor.name)
       }
+      if (!this.isValidUuid(w.uuid)) {
+        w.uuid = this.generateUuid()
+      }
     }
 
     gWidgetAdder = new WidgetAdder(gGrid, this.onWidgetAdd.bind(this))
@@ -368,10 +371,7 @@ export default {
       gWidgetAdder.onAddWidgetDown(ev, widgetType)
     },
     onWidgetAdd(name, x, y, w, h) {
-      let uuid
-      do {
-        uuid = (Math.random() * 1000000) | 0
-      } while (gGrid.getWidgetByUuid(uuid) !== null)
+      const uuid = this.generateUuid()
 
       const id = this.generateId(name)
       const state = {
@@ -517,6 +517,16 @@ export default {
           return id
         }
       }
+    },
+    generateUuid() {
+      let uuid
+      do {
+        uuid = (1 + Math.random() * 65534) | 0
+      } while (gGrid.getWidgetByUuid(uuid) !== null)
+      return uuid
+    },
+    isValidUuid(uuid) {
+      return uuid > 0 && uuid < 65536
     },
     onResetClick() {
       const ok = window.confirm(

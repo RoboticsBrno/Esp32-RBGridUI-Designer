@@ -21,7 +21,7 @@ function genBuilder(widget) {
 
   const coordNames = ['x', 'y', 'w', 'h']
   res += coordNames.map((n) => Common.getPropertyValue(widget, n)).join(', ')
-  res += ')\n'
+  res += `, ${widget.uuid})\n`
 
   for (const [name, prop] of Object.entries(proto.PROPERTIES)) {
     if (prop.ignoreInBuilder) continue

@@ -129,8 +129,8 @@ export default {
           t.name.substring(0, 1).toLowerCase() + t.name.substring(1)
 
         res += `
-    builder::${t.name}& ${nameLower}(float x, float y, float w, float h) {
-        return *newWidget<builder::${t.name}>(x, y, w, h);
+    builder::${t.name}& ${nameLower}(float x, float y, float w, float h, uint16_t uuid = 0) {
+        return *newWidget<builder::${t.name}>(x, y, w, h, uuid);
     }\n`
       }
       return res
