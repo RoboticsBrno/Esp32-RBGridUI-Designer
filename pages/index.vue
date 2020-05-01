@@ -179,7 +179,8 @@ export default {
         const val = {
           type: prop.type,
           value: prop.get ? prop.get.call(w) : w[key],
-          editable: prop.editable
+          editable: prop.editable,
+          options: prop.options
         }
         if (key in window.Widget.prototype.PROPERTIES) {
           general[key] = val

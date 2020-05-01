@@ -77,29 +77,50 @@ export default {
       }
 
       widget = widget.type
+      const wname = widget.name
 
       const genericProps = window.Widget.prototype.PROPERTIES
 
-      let res = ''
+      let props = ''
       for (const [name, prop] of Object.entries(widget.prototype.PROPERTIES)) {
         if (name in genericProps) continue
 
         const typ = Utils.getCppType(prop, true)
-        res += `
-    ${widget.name}& ${name}(${typ} ${name}) {
+        props += `
+    ${wname}& ${name}(${typ} ${name}) {
         extra().set("${name}", ${this.convertToRbJsonValue(name, prop)});
         return *this;
     }\n`
       }
-      return res
+
+      return `#pragma once
+
+#include "../widgets/${wname.toLowerCase()}.h"
+#include "widget.h"
+
+namespace gridui {
+namespace builder {
+
+class ${wname} : public Widget, public BuilderMixin<${wname}, gridui::${wname}> {
+    static const char* name() { return "${wname}"; }
+
+    friend class gridui::_GridUi;
+    using Widget::Widget;
+
+public:${props}
+};
+
+};
+};`
     },
     generateCodeRuntime(widget) {
       if (widget === null) return ''
       const genericProps = window.Widget.prototype.PROPERTIES
 
       widget = widget.type
+      const wname = widget.name
 
-      let res = ''
+      let props = ''
       for (const [name, prop] of Object.entries(widget.prototype.PROPERTIES)) {
         if (name in genericProps || !prop.editable) continue
 
@@ -111,7 +132,7 @@ export default {
 
         const nameCapital =
           name.substring(0, 1).toUpperCase() + name.substring(1)
-        res += `
+        props += `
     void set${nameCapital}(${typIn} ${name}) {
         m_state->set("${name}", new rbjson::${typRbJson}(${name}));
     }
@@ -120,7 +141,24 @@ export default {
         return data().get${typRbJsonGetter}("${name}");
     }\n`
       }
-      return res
+
+      return `#pragma once
+
+#include "widget.h"
+
+namespace gridui {
+
+class ${wname} : public Widget {
+    template <typename Self, typename Finished>
+    friend class builder::BuilderMixin;
+
+    using Widget::Widget;
+
+public:${props}
+};
+
+};
+`
     },
     generateGridUiMethods() {
       let res = ''

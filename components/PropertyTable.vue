@@ -20,6 +20,14 @@
               type="checkbox"
               @change="onValueChange(name)"
             />
+            <select
+              v-else-if="prop.editable && prop.options"
+              v-model="models[name]"
+              style="width: 100%"
+              @change="onValueChange(name)"
+            >
+              <option v-for="o in prop.options" :key="o">{{ o }}</option>
+            </select>
             <input
               v-else-if="prop.editable && prop.type === Number"
               v-model="models[name]"
