@@ -36,13 +36,25 @@
               style="width: 100%"
               @change="onValueChange(name)"
             />
-            <input
+            <div
               v-else-if="prop.editable && prop.type === String"
-              v-model="models[name]"
-              type="text"
-              style="width: 100%"
-              @change="onValueChange(name)"
-            />
+              class="d-flex"
+            >
+              <input
+                v-model="models[name]"
+                type="text"
+                style="min-width: 80%"
+                @change="onValueChange(name)"
+              />
+              <input
+                v-if="prop.isColor"
+                v-model="models[name]"
+                class="py-1"
+                style="min-width: 10%"
+                type="color"
+                @change="onValueChange(name)"
+              />
+            </div>
             <object-property-editor
               v-else-if="prop.editable && prop.type === Object"
               v-model="models[name]"
