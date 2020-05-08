@@ -29,10 +29,11 @@ function processWidget(widget, isSelected) {
   }
 
   res += `    .finish();\n\n`
+
   return res
 }
 
-export default function(widgets, selectedWidgets) {
+export default function (widgets, selectedWidgets) {
   let res = ''
   for (const w of widgets) {
     res += processWidget(w, selectedWidgets.includes(w))

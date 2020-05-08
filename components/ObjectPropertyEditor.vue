@@ -1,12 +1,12 @@
 <template>
-  <v-dialog v-model="show" width="500" style="z-index: 1000">
+  <v-dialog v-model="show" width="500" style="z-index: 1000;">
     <template v-slot:activator="{ on }">
       <v-btn text color="primary" small v-on="on">
         edit
       </v-btn>
     </template>
 
-    <v-card style="overflow-y: auto" max-height="600px">
+    <v-card style="overflow-y: auto;" max-height="600px">
       <v-card-title> Editing '{{ name }}' </v-card-title>
 
       <v-simple-table>
@@ -19,12 +19,12 @@
         </thead>
         <tbody>
           <tr v-for="(val, key) in value" :key="key">
-            <td style="width: 150px">
+            <td style="width: 150px;">
               <input
                 :value="key"
                 class="object-property-name"
                 type="text"
-                style="font-weight: bold"
+                style="font-weight: bold;"
                 tabindex="0"
                 @change="onKeyChange(key, $event.target.value)"
               />
@@ -32,7 +32,7 @@
             <td>
               <input v-model="value[key]" tabindex="0" type="text" />
             </td>
-            <td style="width: 1%">
+            <td style="width: 1%;">
               <v-btn icon @click="$delete(value, key)">
                 <v-icon>mdi-delete</v-icon>
               </v-btn>

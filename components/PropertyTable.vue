@@ -10,7 +10,7 @@
           :key="name"
           :class="{ 'id-row': name === 'id' }"
         >
-          <td class="text-right property-name" style="width: 90px">
+          <td class="text-right property-name" style="width: 90px;">
             <b>{{ name }}</b>
           </td>
           <td class="text-no-wrap">
@@ -23,7 +23,7 @@
             <select
               v-else-if="prop.editable && prop.options"
               v-model="models[name]"
-              style="width: 100%"
+              style="width: 100%;"
               @change="onValueChange(name)"
             >
               <option v-for="o in prop.options" :key="o">{{ o }}</option>
@@ -33,7 +33,7 @@
               v-model="models[name]"
               type="number"
               step="0.5"
-              style="width: 100%"
+              style="width: 100%;"
               @change="onValueChange(name)"
             />
             <div
@@ -43,14 +43,14 @@
               <input
                 v-model="models[name]"
                 type="text"
-                style="min-width: 80%"
+                style="min-width: 80%;"
                 @change="onValueChange(name)"
               />
               <input
                 v-if="prop.isColor"
                 v-model="models[name]"
                 class="py-1"
-                style="min-width: 10%"
+                style="min-width: 10%;"
                 type="color"
                 @change="onValueChange(name)"
               />
@@ -64,7 +64,7 @@
             <div
               v-else
               class="grey--text text--lighten-1"
-              style="cursor: not-allowed"
+              style="cursor: not-allowed;"
             >
               {{ models[name] }}
             </div>
