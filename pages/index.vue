@@ -134,6 +134,7 @@ const defaultLayout = {
   cols: 12,
   rows: 18,
   enableSplitting: true,
+  drawGrid: true,
   widgets: []
 }
 
@@ -238,7 +239,9 @@ export default {
         return defaultLayout
       }
 
-      return JSON.parse(saved)
+      const res = JSON.parse(saved)
+      res.drawGrid = true
+      return res
     },
     updateGridCardWidth() {
       const card = document.getElementById('grid-card')
