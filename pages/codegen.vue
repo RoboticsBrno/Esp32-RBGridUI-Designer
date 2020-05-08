@@ -128,7 +128,6 @@ public:${props}
         const typOut = Utils.getCppType(prop, false)
         const typRbJson = Utils.getRbJsonType(prop)
         const typRbJsonGetter = typRbJson === 'Number' ? 'Double' : typRbJson
-        const getterName = prop.type === Boolean ? 'is' : 'get'
 
         const nameCapital =
           name.substring(0, 1).toUpperCase() + name.substring(1)
@@ -137,7 +136,7 @@ public:${props}
         m_state->set("${name}", new rbjson::${typRbJson}(${name}));
     }
 
-    ${typOut} ${getterName}${nameCapital}() const {
+    ${typOut} ${name}() const {
         return data().get${typRbJsonGetter}("${name}");
     }\n`
       }
