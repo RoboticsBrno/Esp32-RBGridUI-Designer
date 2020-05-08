@@ -214,15 +214,6 @@ export default {
 
     gGrid = new window.Grid(null, 'grid', this.loadLayout())
 
-    for (const w of gGrid.widgets) {
-      if (w.id === undefined) {
-        w.id = this.generateId(w.constructor.name)
-      }
-      if (!this.isValidUuid(w.uuid)) {
-        w.uuid = this.generateUuid()
-      }
-    }
-
     gWidgetAdder = new WidgetAdder(gGrid, this.onWidgetAdd.bind(this))
 
     this.updateGridCardWidth()
@@ -239,9 +230,7 @@ export default {
         return defaultLayout
       }
 
-      const res = JSON.parse(saved)
-      res.drawGrid = true
-      return res
+      return this.fixupLegacyLayout(JSON.parse(saved))
     },
     updateGridCardWidth() {
       const card = document.getElementById('grid-card')
@@ -436,6 +425,7 @@ export default {
       this.scheduleCodeUpdate()
     },
     onImportLayout(layout) {
+      layout = this.fixupLegacyLayout(layout)
       this.undoStack.push(new Undo.ReplaceLayout(gGrid, this.layout, layout))
       this.selectedWidgets = []
       this.scheduleCodeUpdate()
@@ -542,6 +532,18 @@ export default {
         this.undoStack.clear()
         this.scheduleCodeUpdate()
       }
+    },
+    fixupLegacyLayout(layout) {
+      layout.drawGrid = true
+      for (const w of layout.widgets) {
+        if (w.state.id === undefined) {
+          w.state.id = this.generateId(w.type)
+        }
+        if (!this.isValidUuid(w.uuid)) {
+          w.uuid = this.generateUuid()
+        }
+      }
+      return layout
     }
   }
 }
