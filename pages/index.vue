@@ -528,9 +528,8 @@ export default {
         'This will reset the whole layout and you will NOT be albe to undo this. Continue?'
       )
       if (ok) {
-        gGrid.reset(defaultLayout)
-        this.undoStack.clear()
-        this.scheduleCodeUpdate()
+        window.localStorage.removeItem('layout')
+        window.location.reload()
       }
     },
     fixupLegacyLayout(layout) {
