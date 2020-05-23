@@ -261,6 +261,17 @@ export default {
         setTimeout(calcDimensions, 0)
       }
     },
+    selectWidget(widget, multiple) {
+      const idx = this.selectedWidgets.indexOf(widget)
+      if (idx !== -1) this.selectedWidgets.splice(idx, 1)
+      else {
+        widget.el.classList.add('grid-widget-active')
+        if (!multiple) {
+          this.clearSelection(0)
+        }
+      }
+      this.selectedWidgets.push(widget)
+    },
     onGridMouseDown(ev) {
       if (ev.button !== 0) return
 
@@ -272,15 +283,7 @@ export default {
       const w = gGrid.getWidgetAtPos(ev.clientX, ev.clientY)
       if (w === null) return
 
-      const idx = this.selectedWidgets.indexOf(w)
-      if (idx !== -1) this.selectedWidgets.splice(idx, 1)
-      else {
-        w.el.classList.add('grid-widget-active')
-        if (!multiple) {
-          this.clearSelection(0)
-        }
-      }
-      this.selectedWidgets.push(w)
+      this.selectWidget(w, multiple)
       this.scheduleCodeUpdate()
 
       const rect = w.el.getBoundingClientRect()
@@ -377,7 +380,10 @@ export default {
         h
       }
 
+      const prevLen = gGrid.widgets.length
       this.undoStack.push(new Undo.AddWidget(gGrid, uuid, name, state))
+      if (prevLen < gGrid.widgets.length)
+        this.selectWidget(gGrid.widgets[prevLen], false)
       this.scheduleCodeUpdate()
     },
     onKeyDown(ev) {
