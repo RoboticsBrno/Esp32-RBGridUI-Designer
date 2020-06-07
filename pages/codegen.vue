@@ -101,6 +101,8 @@ export default {
 namespace gridui {
 namespace builder {
 
+/** @ingroup widgets_builder
+*/
 class ${wname} : public Widget, public BuilderMixin<${wname}, gridui::${wname}> {
     static const char* name() { return "${wname}"; }
 
@@ -147,6 +149,8 @@ public:${props}
 
 namespace gridui {
 
+/** @ingroup widgets_constructed
+*/
 class ${wname} : public Widget {
     template <typename Self, typename Finished>
     friend class builder::BuilderMixin;
