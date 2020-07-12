@@ -18,7 +18,7 @@
               v-if="prop.editable && prop.type === Boolean"
               v-model="models[name]"
               type="checkbox"
-              @change="onValueChange(name)"
+              @input="onValueChange(name)"
             />
             <select
               v-else-if="prop.editable && prop.options"
