@@ -1,6 +1,6 @@
 <template>
   <v-app light>
-    <v-content class="blue-grey lighten-4">
+    <v-main class="blue-grey lighten-4">
       <client-only>
         <nuxt />
       </client-only>
@@ -17,7 +17,7 @@
         position="bottom right"
         class="ma-6"
       />
-    </v-content>
+    </v-main>
   </v-app>
 </template>
 

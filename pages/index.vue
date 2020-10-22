@@ -36,7 +36,7 @@
     <div
       id="grid-wrapper"
       class="d-flex align-center justify-center my-12 mx-6"
-      style="flex: 4 1 0px;"
+      style="flex: 4 1 0px"
     >
       <v-card id="grid-card">
         <div id="log">This is the log.</div>
@@ -68,7 +68,7 @@
         </v-btn>
       </div>
       <v-card-title class="py-0">Properties</v-card-title>
-      <div style="overflow-y: auto;">
+      <div style="overflow-y: auto">
         <property-table
           :properties="properties"
           :uuid="selectedUuid"
@@ -91,9 +91,9 @@
 
     <div
       class="d-flex flex-column ms-2"
-      style="heigth: 100%; flex: 5 1 0px; overflow: hidden;"
+      style="heigth: 100%; flex: 5 1 0px; overflow: hidden"
     >
-      <v-card class="mb-1 code-card" style="flex-grow: 0;">
+      <v-card class="mb-1 code-card" style="flex-grow: 0">
         <code-display
           :value="`${JSON.stringify(layout, null, 4)}`"
           language="javascript"

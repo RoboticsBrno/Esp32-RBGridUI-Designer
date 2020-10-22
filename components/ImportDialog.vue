@@ -1,6 +1,6 @@
 <template>
   <div>
-    <v-dialog v-model="show" width="700" style="z-index: 1000;">
+    <v-dialog v-model="show" width="700" style="z-index: 1000">
       <template v-slot:activator="{ on }">
         <v-btn block text color="secondary" class="justify-start" v-on="on">
           <v-icon>mdi-import</v-icon>
@@ -9,9 +9,7 @@
       </template>
 
       <v-card>
-        <v-card-title>
-          Import layout
-        </v-card-title>
+        <v-card-title> Import layout </v-card-title>
 
         <v-card-text>
           <p>
