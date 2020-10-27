@@ -22,6 +22,7 @@
     </v-row>
     <div v-show="showCode" class="flex-grow-1" style="overflow: hidden">
       <pre
+        :class="`language-${language}`"
         style="overflow: auto; height: 100%; font-size: 12px"
       ><code :class="[ `language-${language}`, 'pb-4' ]" v-html="highlighted"></code></pre>
     </div>
