@@ -68,4 +68,15 @@ export default class {
     document.body.removeChild(this.widget.el)
     this.widget = null
   }
+
+  calculatePxPos(widget) {
+    const w = widget.w * this.grid.scaleX
+    const h = widget.h * this.grid.scaleY
+    return {
+      x: this.mouseX - w / 2,
+      y: this.mouseY - h / 2,
+      w: w,
+      h: h
+    }
+  }
 }
