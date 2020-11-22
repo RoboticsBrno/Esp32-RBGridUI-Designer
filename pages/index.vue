@@ -111,6 +111,7 @@
 <script>
 import DefaultWidgetStates from '~/src/DefaultWidgetStates'
 import WidgetAdder from '~/src/WidgetAdder'
+import WidgetCopyPaster from '~/src/WidgetCopyPaster'
 import * as Undo from '~/src/UndoStack'
 import * as Header from '~/src/cppgenerator/Header'
 
@@ -160,11 +161,14 @@ export default {
       widgetTypes: types,
       clickX: 0,
       clickY: 0,
+      mouseX: 0,
+      mouseY: 0,
       selectedWidgets: [],
       layout: [],
       cppCode: '',
       updateTimeout: null,
-      undoStack: new Undo.UndoStack()
+      undoStack: new Undo.UndoStack(),
+      copyPaster: null
     }
   },
   computed: {
@@ -215,6 +219,7 @@ export default {
     gGrid = new window.Grid(null, 'grid', this.loadLayout())
 
     gWidgetAdder = new WidgetAdder(gGrid, this.onWidgetAdd.bind(this))
+    this.copyPaster = new WidgetCopyPaster(gGrid)
 
     this.updateGridCardWidth()
     window.addEventListener('resize', this.updateGridCardWidth.bind(this))
@@ -334,6 +339,9 @@ export default {
       this.isScaling = false
     },
     onGridMouseMove(ev) {
+      this.mouseX = ev.clientX
+      this.mouseY = ev.clientY
+
       if (!this.isDragging && !this.isScaling) return
 
       const method = this.isDragging
@@ -409,6 +417,29 @@ export default {
           if (!ev.ctrlKey) return
           this.onRedoClick()
           break
+        case 'c':
+          if (!ev.ctrlKey) return
+          this.copyPaster.onCopy(this, this.selectedWidgets)
+          break
+        case 'v': {
+          if (!ev.ctrlKey) return
+          const toAdd = this.copyPaster.onPaste(this, this.mouseX, this.mouseY)
+          if (!toAdd) return
+
+          const prevLen = gGrid.widgets.length
+          const ops = toAdd.map((info) => {
+            const uuid = this.generateUuid()
+            info.extra.id = this.generateId(info.extra.id)
+            return new Undo.AddWidget(gGrid, uuid, info.type, info.extra)
+          })
+          this.undoStack.push(...ops)
+          this.clearSelection(0)
+          for (let i = prevLen; i < gGrid.widgets.length; ++i) {
+            this.selectWidget(gGrid.widgets[i], true)
+          }
+          this.scheduleCodeUpdate()
+          break
+        }
       }
     },
     onDeleteClick() {

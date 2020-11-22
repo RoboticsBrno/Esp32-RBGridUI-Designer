@@ -11,6 +11,20 @@
         class="ma-6"
       />
       <notifications
+        group="warn"
+        type="warn"
+        position="bottom right"
+        :classes="['vue-notification', 'warn']"
+        class="ma-6"
+      />
+      <notifications
+        group="error"
+        type="error"
+        :classes="['vue-notification', 'error']"
+        position="bottom right"
+        class="ma-6"
+      />
+      <notifications
         group="success"
         type="success"
         :classes="['vue-notification', 'success']"
