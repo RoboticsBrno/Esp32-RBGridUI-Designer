@@ -216,6 +216,8 @@ export default {
     if (gGrid !== null) return
     window.nipplejs = nipplejs
 
+    window.IN_RB_GRID_DESIGNER = true
+
     gGrid = new window.Grid(null, 'grid', this.loadLayout())
 
     gWidgetAdder = new WidgetAdder(gGrid, this.onWidgetAdd.bind(this))
