@@ -186,7 +186,8 @@ export default {
           value: prop.get ? prop.get.call(w) : w[key],
           editable: prop.editable,
           options: prop.options,
-          isColor: prop.isColor
+          isColor: prop.isColor,
+          step: prop.step,
         }
         if (key in window.Widget.prototype.PROPERTIES) {
           general[key] = val

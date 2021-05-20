@@ -32,7 +32,7 @@
               v-else-if="prop.editable && prop.type === Number"
               v-model="models[name]"
               type="number"
-              step="0.5"
+              :step="prop.step"
               style="width: 100%"
               @change="onValueChange(name)"
             />
