@@ -4,26 +4,25 @@ on:
     branches: [master]
 jobs:
   publish:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           submodules: true
       - name: Install
-        uses: CultureHQ/actions-yarn@master
+        uses: actions/setup-node@v3
         with:
-          args: install
-      - name: Generate
-        uses: CultureHQ/actions-yarn@master
-        with:
-          args: generate
+          node-version: 16
+          cache: 'yarn'
+      - run: yarn install
+      - run: yarn generate
         env:
           NUXT_SUBFOLDER: /Esp32-RBGridUI-Designer/
       - name: Deploy
         if: success()
-        uses: crazy-max/ghaction-github-pages@v1
+        uses: crazy-max/ghaction-github-pages@v3
         with:
           target_branch: gh-pages
           build_dir: dist
         env:
-          GITHUB_PAT: ${{ secrets.GITHUBPAT }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
