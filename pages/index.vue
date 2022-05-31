@@ -17,7 +17,15 @@
         large
         @mousedown="onAddWidgetDown($event, t.type)"
       >
-        {{ t.name }}
+        <div>{{ t.name }}</div>
+        <div
+          v-if="t.requiredVersion !== null"
+          class="text-caption text-right grey--text"
+          style="flex: 1"
+          :title="`This widget requires GridUI v${t.requiredVersion} or higher`"
+        >
+          {{ t.requiredVersion }}
+        </div>
       </v-btn>
 
       <v-btn
@@ -151,7 +159,8 @@ export default {
       types = window.Widget.SUBCLASSES.map((w) => {
         return {
           name: w.name,
-          type: w
+          type: w,
+          requiredVersion: this.formatRequiredVersion(w)
         }
       })
     }
@@ -187,7 +196,7 @@ export default {
           editable: prop.editable,
           options: prop.options,
           isColor: prop.isColor,
-          step: prop.step,
+          step: prop.step
         }
         if (key in window.Widget.prototype.PROPERTIES) {
           general[key] = val
@@ -583,6 +592,11 @@ export default {
         }
       }
       return layout
+    },
+    formatRequiredVersion(w) {
+      const ver = w.prototype.MIN_LIBRARY_VERSION
+      if (ver === 0x040000) return null
+      return `${ver >> 16}.${(ver >> 8) & 0xff}.${ver & 0xff}`
     }
   }
 }
@@ -602,6 +616,7 @@ export default {
 
 .add-button {
   cursor: grab;
+  display: flex;
 
   &:active {
     cursor: grabbing;

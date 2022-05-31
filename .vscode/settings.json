@@ -1,4 +1,7 @@
 {
   "editor.tabSize": 2,
-  "vetur.format.defaultFormatter.html": "prettier"
+  "vetur.format.defaultFormatter.html": "prettier",
+  "files.associations": {
+    "new": "cpp"
+  }
 }

@@ -24,6 +24,7 @@ module.exports = {
     'no-useless-return': 'warn',
     'vue/no-v-html': 'off',
     "no-unreachable": "warn",
+    "unicorn/number-literal-case": 'off'
   },
   overrides: [
     {
