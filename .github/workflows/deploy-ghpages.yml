@@ -12,7 +12,7 @@ jobs:
       - name: Install
         uses: actions/setup-node@v3
         with:
-          node-version: 16
+          node-version: 12
           cache: 'yarn'
       - run: yarn install
       - run: yarn generate
