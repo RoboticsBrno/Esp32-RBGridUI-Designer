@@ -1,7 +1,7 @@
 name: Github pages deploy
 on:
-  push:
-    branches: [master]
+  push
+  workflow_dispatch
 jobs:
   publish:
     runs-on: ubuntu-20.04
@@ -18,11 +18,3 @@ jobs:
       - run: yarn generate
         env:
           NUXT_SUBFOLDER: /Esp32-RBGridUI-Designer/
-      - name: Deploy
-        if: success()
-        uses: crazy-max/ghaction-github-pages@v3
-        with:
-          target_branch: gh-pages
-          build_dir: dist
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
