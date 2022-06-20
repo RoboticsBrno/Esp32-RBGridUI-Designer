@@ -1,7 +1,5 @@
 name: Github pages deploy
-on:
-  push
-  workflow_dispatch
+on: [push,  workflow_dispatch ]
 jobs:
   publish:
     runs-on: ubuntu-20.04
