@@ -95,6 +95,38 @@
         <v-icon>mdi-delete</v-icon>
         Delete widget
       </v-btn>
+
+      <v-spacer></v-spacer>
+      <v-divider></v-divider>
+      <v-card>
+        <v-tabs v-model="activeTab" center-active grow show-arrows>
+          <v-tabs-slider></v-tabs-slider>
+
+          <v-tab v-for="i in tabsCount" :key="i" @click="activeTab = i">
+            Tab {{ i - 1 }}
+          </v-tab>
+        </v-tabs>
+        <v-card-text width="100%">
+          <v-btn
+            class="justify-center"
+            color="primary"
+            :disabled="!tabsCount"
+            text
+            @click="tabsCount--"
+          >
+            - Tab
+          </v-btn>
+          <v-divider class="mx-4" vertical></v-divider>
+          <v-btn
+            class="justify-center"
+            color="primary"
+            text
+            @click="tabsCount++"
+          >
+            + Tab
+          </v-btn>
+        </v-card-text>
+      </v-card>
     </v-card>
 
     <div
@@ -177,7 +209,9 @@ export default {
       cppCode: '',
       updateTimeout: null,
       undoStack: new Undo.UndoStack(),
-      copyPaster: null
+      copyPaster: null,
+      tabsCount: 1,
+      activeTab: 0
     }
   },
   computed: {
@@ -222,6 +256,15 @@ export default {
       return this.undoStack.canRedo()
     }
   },
+  watch: {
+    tabsCount(val) {
+      gGrid.setTabCount(val)
+      this.activeTab = val - 1
+    },
+    activeTab(val) {
+      gGrid.setCurrentTab(val)
+    }
+  },
   mounted() {
     if (gGrid !== null) return
     window.nipplejs = nipplejs
@@ -239,6 +282,7 @@ export default {
     document.addEventListener('keydown', this.onKeyDown.bind(this))
 
     this.scheduleCodeUpdate()
+    this.tabsCount = gGrid.tabs.length 
   },
   methods: {
     loadLayout() {
@@ -391,13 +435,15 @@ export default {
       const uuid = this.generateUuid()
 
       const id = this.generateId(name)
+      const tab = this.activeTab
       const state = {
         ...DefaultWidgetStates[name],
         id,
         x,
         y,
         w,
-        h
+        h,
+        tab
       }
 
       const prevLen = gGrid.widgets.length
@@ -545,6 +591,11 @@ export default {
           value
         )
       )
+
+      if (name === 'tab') {
+        gGrid.moveToTab(this.selectedWidgets[0], value, oldValue)
+        this.tabsCount = gGrid.tabs.length
+      }
     },
     generateId(typeName, allowSameAsTypeName) {
       const widgetIds = Object.fromEntries(
@@ -686,5 +737,10 @@ button.grid-widget {
   flex: auto;
   min-height: 50px;
   overflow: hidden;
+}
+
+.tab-select {
+  position: absolute;
+  bottom: 0px;
 }
 </style>
