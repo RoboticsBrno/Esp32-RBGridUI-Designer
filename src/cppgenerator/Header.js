@@ -19,7 +19,7 @@ function genBuilder(widget) {
   let res = `${id}(
             UI.${type.toLowerCase()}(`
 
-  const coordNames = ['x', 'y', 'w', 'h']
+  const coordNames = ['x', 'y', 'w', 'h', 'tab']
   res += coordNames.map((n) => Common.getPropertyValue(widget, n)).join(', ')
   res += `, ${widget.uuid})\n`
 
@@ -135,6 +135,10 @@ public:
         }
         called = true;
         return builder::_LayoutBuilder();
+    }
+
+    void changeTab (uint16_t index) {
+        UI.changeTab(index);
     }
 
     ${layoutMembers}

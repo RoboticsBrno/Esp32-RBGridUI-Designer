@@ -641,6 +641,8 @@ export default {
         if (!this.isValidUuid(w.uuid)) {
           w.uuid = this.generateUuid()
         }
+        if (!w.tab)
+          w.tab = 0
       }
       return layout
     },
