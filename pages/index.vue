@@ -99,33 +99,33 @@
       <v-spacer></v-spacer>
       <v-divider></v-divider>
       <v-card>
+        <v-row
+          dense
+          align="center"
+          title="Tabs require GridUI library v4.9.0 or higher."
+        >
+          <v-col class="shrink">
+            <v-btn
+              color="primary"
+              :disabled="tabsCount <= 1"
+              icon
+              @click="modifyTabCount(-1)"
+            >
+              <v-icon>mdi-minus</v-icon>
+            </v-btn>
+          </v-col>
+          <v-col class="text-center grey--text"> 4.9.0 </v-col>
+          <v-col class="shrink">
+            <v-btn color="primary" icon @click="modifyTabCount(1)">
+              <v-icon>mdi-plus</v-icon>
+            </v-btn>
+          </v-col>
+        </v-row>
         <v-tabs v-model="activeTab" center-active grow show-arrows>
           <v-tabs-slider></v-tabs-slider>
 
-          <v-tab v-for="i in tabsCount" :key="i" @click="activeTab = i">
-            Tab {{ i - 1 }}
-          </v-tab>
+          <v-tab v-for="i in tabsCount" :key="i"> Tab {{ i - 1 }} </v-tab>
         </v-tabs>
-        <v-card-text width="100%">
-          <v-btn
-            class="justify-center"
-            color="primary"
-            :disabled="!tabsCount"
-            text
-            @click="tabsCount--"
-          >
-            - Tab
-          </v-btn>
-          <v-divider class="mx-4" vertical></v-divider>
-          <v-btn
-            class="justify-center"
-            color="primary"
-            text
-            @click="tabsCount++"
-          >
-            + Tab
-          </v-btn>
-        </v-card-text>
       </v-card>
     </v-card>
 
@@ -257,10 +257,6 @@ export default {
     }
   },
   watch: {
-    tabsCount(val) {
-      gGrid.setTabCount(val)
-      this.activeTab = val - 1
-    },
     activeTab(val) {
       gGrid.setCurrentTab(val)
     }
@@ -282,7 +278,7 @@ export default {
     document.addEventListener('keydown', this.onKeyDown.bind(this))
 
     this.scheduleCodeUpdate()
-    this.tabsCount = gGrid.tabs.length 
+    this.tabsCount = gGrid.tabs.length
   },
   methods: {
     loadLayout() {
@@ -641,8 +637,7 @@ export default {
         if (!this.isValidUuid(w.uuid)) {
           w.uuid = this.generateUuid()
         }
-        if (!w.tab)
-          w.tab = 0
+        if (!w.tab) w.tab = 0
       }
       return layout
     },
@@ -650,6 +645,22 @@ export default {
       const ver = w.prototype.MIN_LIBRARY_VERSION
       if (ver === 0x040000) return null
       return `${ver >> 16}.${(ver >> 8) & 0xff}.${ver & 0xff}`
+    },
+    modifyTabCount(delta) {
+      if (this.tabsCount + delta < 1) {
+        return
+      }
+
+      this.undoStack.push(
+        new Undo.SetTabCount(
+          this,
+          gGrid,
+          this.tabsCount,
+          this.tabsCount + delta
+        )
+      )
+      this.clearSelection(0)
+      this.scheduleCodeUpdate()
     }
   }
 }
@@ -739,10 +750,5 @@ button.grid-widget {
   flex: auto;
   min-height: 50px;
   overflow: hidden;
-}
-
-.tab-select {
-  position: absolute;
-  bottom: 0px;
 }
 </style>
