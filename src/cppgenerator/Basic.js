@@ -6,7 +6,7 @@ function processWidget(widget, isSelected) {
 
   let res = `UI.${type.toLowerCase()}(`
 
-  const coordNames = ['x', 'y', 'w', 'h']
+  const coordNames = ['x', 'y', 'w', 'h', 'tab']
   res += coordNames.map((n) => Common.getPropertyValue(widget, n)).join(', ')
   if (isSelected) {
     res += ') // <-- selected\n'

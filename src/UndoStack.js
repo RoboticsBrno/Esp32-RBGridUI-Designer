@@ -118,6 +118,45 @@ export class ReplaceLayout extends UndoOperation {
   }
 }
 
+export class SetTabCount extends UndoOperation {
+  constructor(designer, grid, origTabCount, newTabCount) {
+    super()
+    this.designer = designer
+    this.grid = grid
+    this.origTabCount = origTabCount
+    this.newTabCount = newTabCount
+    this.widgetDeletes = []
+  }
+
+  undo() {
+    this.setCount(this.newTabCount, this.origTabCount)
+  }
+
+  redo() {
+    this.setCount(this.origTabCount, this.newTabCount)
+  }
+
+  setCount(before, after) {
+    if (before > after) {
+      this.widgetDeletes = this.grid.widgets
+        .filter((w) => w.tab === before - 1)
+        .map((w) => new DeleteWidget(this.grid, w))
+      this.widgetDeletes.forEach((d) => d.redo())
+    }
+
+    this.grid.setTabCount(after)
+    this.designer.tabsCount = after
+    this.designer.activeTab = this.grid.currentTabIdx
+
+    if (before < after) {
+      for (const d of this.widgetDeletes) {
+        d.undo()
+      }
+      this.widgetDeletes = []
+    }
+  }
+}
+
 export class UndoStack {
   constructor() {
     this.stack = []

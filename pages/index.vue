@@ -95,6 +95,38 @@
         <v-icon>mdi-delete</v-icon>
         Delete widget
       </v-btn>
+
+      <v-spacer></v-spacer>
+      <v-divider></v-divider>
+      <v-card>
+        <v-row
+          dense
+          align="center"
+          title="Tabs require GridUI library v4.9.0 or higher."
+        >
+          <v-col class="shrink">
+            <v-btn
+              color="primary"
+              :disabled="tabsCount <= 1"
+              icon
+              @click="modifyTabCount(-1)"
+            >
+              <v-icon>mdi-minus</v-icon>
+            </v-btn>
+          </v-col>
+          <v-col class="text-center grey--text"> 4.9.0 </v-col>
+          <v-col class="shrink">
+            <v-btn color="primary" icon @click="modifyTabCount(1)">
+              <v-icon>mdi-plus</v-icon>
+            </v-btn>
+          </v-col>
+        </v-row>
+        <v-tabs v-model="activeTab" center-active grow show-arrows>
+          <v-tabs-slider></v-tabs-slider>
+
+          <v-tab v-for="i in tabsCount" :key="i"> Tab {{ i - 1 }} </v-tab>
+        </v-tabs>
+      </v-card>
     </v-card>
 
     <div
@@ -177,7 +209,9 @@ export default {
       cppCode: '',
       updateTimeout: null,
       undoStack: new Undo.UndoStack(),
-      copyPaster: null
+      copyPaster: null,
+      tabsCount: 1,
+      activeTab: 0
     }
   },
   computed: {
@@ -222,6 +256,11 @@ export default {
       return this.undoStack.canRedo()
     }
   },
+  watch: {
+    activeTab(val) {
+      gGrid.setCurrentTab(val)
+    }
+  },
   mounted() {
     if (gGrid !== null) return
     window.nipplejs = nipplejs
@@ -239,6 +278,7 @@ export default {
     document.addEventListener('keydown', this.onKeyDown.bind(this))
 
     this.scheduleCodeUpdate()
+    this.tabsCount = gGrid.tabs.length
   },
   methods: {
     loadLayout() {
@@ -391,13 +431,15 @@ export default {
       const uuid = this.generateUuid()
 
       const id = this.generateId(name)
+      const tab = this.activeTab
       const state = {
         ...DefaultWidgetStates[name],
         id,
         x,
         y,
         w,
-        h
+        h,
+        tab
       }
 
       const prevLen = gGrid.widgets.length
@@ -545,6 +587,11 @@ export default {
           value
         )
       )
+
+      if (name === 'tab') {
+        gGrid.moveToTab(this.selectedWidgets[0], value, oldValue)
+        this.tabsCount = gGrid.tabs.length
+      }
     },
     generateId(typeName, allowSameAsTypeName) {
       const widgetIds = Object.fromEntries(
@@ -590,6 +637,7 @@ export default {
         if (!this.isValidUuid(w.uuid)) {
           w.uuid = this.generateUuid()
         }
+        if (!w.tab) w.tab = 0
       }
       return layout
     },
@@ -597,6 +645,22 @@ export default {
       const ver = w.prototype.MIN_LIBRARY_VERSION
       if (ver === 0x040000) return null
       return `${ver >> 16}.${(ver >> 8) & 0xff}.${ver & 0xff}`
+    },
+    modifyTabCount(delta) {
+      if (this.tabsCount + delta < 1) {
+        return
+      }
+
+      this.undoStack.push(
+        new Undo.SetTabCount(
+          this,
+          gGrid,
+          this.tabsCount,
+          this.tabsCount + delta
+        )
+      )
+      this.clearSelection(0)
+      this.scheduleCodeUpdate()
     }
   }
 }

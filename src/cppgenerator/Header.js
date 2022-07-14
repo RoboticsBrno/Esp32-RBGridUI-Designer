@@ -11,7 +11,7 @@ function genCommit(widget) {
   return `Layout.${id} = ${id}.finish();`
 }
 
-function genBuilder(widget) {
+function genBuilder(widget, isUsingTabs) {
   const type = widget.constructor.name
   const proto = Object.getPrototypeOf(widget)
 
@@ -21,8 +21,11 @@ function genBuilder(widget) {
 
   const coordNames = ['x', 'y', 'w', 'h']
   res += coordNames.map((n) => Common.getPropertyValue(widget, n)).join(', ')
-  res += `, ${widget.uuid})\n`
-
+  res += `, ${widget.uuid}`
+  if (isUsingTabs) {
+    res += `, ${widget.tab}`
+  }
+  res += `)\n`
   for (const [name, prop] of Object.entries(proto.PROPERTIES)) {
     if (prop.ignoreInBuilder) continue
 
@@ -57,17 +60,23 @@ export function parse(text) {
 }
 
 export function generate(widgets, layout) {
-  const builder = widgets.map((w) => genBuilder(w)).join(',\n        ')
+  const isUsingTabs = widgets.some((w) => Common.getPropertyValue(w, 'tab') > 0)
+
+  const builder = widgets
+    .map((w) => genBuilder(w, isUsingTabs))
+    .join(',\n        ')
   const builderMembers = widgets.map((w) => genMember(w, '&')).join('\n    ')
   const layoutMembers = widgets.map((w) => genMember(w, '')).join('\n    ')
   const builderCommit = widgets.map((w) => genCommit(w)).join('\n    ')
+
+  const baseMinVer = isUsingTabs ? 0x040900 : 0x000000
   const minVersion = widgets
     .reduce((minVer, w) => {
       if (w.MIN_LIBRARY_VERSION > minVer) {
         return w.MIN_LIBRARY_VERSION
       }
       return minVer
-    }, 0x000000)
+    }, baseMinVer)
     .toString(16)
     .padStart(6, '0')
   return `// clang-format off
@@ -135,6 +144,10 @@ public:
         }
         called = true;
         return builder::_LayoutBuilder();
+    }
+
+    void changeTab (uint16_t index) {
+        UI.changeTab(index);
     }
 
     ${layoutMembers}
