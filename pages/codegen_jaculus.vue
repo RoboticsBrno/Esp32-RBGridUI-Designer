@@ -81,18 +81,21 @@ export default {
 
       const genericProps = window.Widget.prototype.PROPERTIES
 
-      let props = ''
+      let builderMethods = ""
+      let builderProps = ""
       for (const [name, prop] of Object.entries(widget.prototype.PROPERTIES)) {
         if (name in genericProps) continue
 
         const typ = Utils.getCppType(prop, false)
-        props += `
-        proto.defineProperty("${name}", ff.newFunctionThisVariadic([](jac::ContextRef ctx, jac::ValueWeak thisVal, std::vector<jac::ValueWeak> args) {
-            if(args.size() < 1) throw jac::Exception::create(jac::Exception::Type::TypeError, "1 argument expected");
-            auto& builder = *GridUiBuilder${wname}::getOpaque(ctx, thisVal);
-            builder.${name}(args[0].to<${typ}>());
-            return thisVal;
-        }), jac::PropFlags::Enumerable);`
+        builderMethods += `
+    static JSValue ${name}(JSContext* ctx_, JSValueConst thisVal, int argc, JSValueConst* argv) {
+        auto& builder = *reinterpret_cast<gridui::builder::${wname}*>(JS_GetOpaque(thisVal, 1));
+        builder.${name}(jac::ValueWeak(ctx_, argv[0]).to<${typ}>());
+        return JS_DupValue(ctx_, thisVal);
+    }
+`
+        builderProps += `
+        proto.set("${name}", jac::Value(ctx, JS_NewCFunction(ctx, ${name}, "${name}", 1)));`
       }
 
       return `#pragma once
@@ -100,21 +103,16 @@ export default {
 #include <jac/machine/functionFactory.h>
 #include <gridui.h>
 
-#include "../widgets/${wname.toLowerCase()}.h"
+namespace gridui_jac {
 
-struct GridUiBuilder${wname} : public jac::ProtoBuilder::Opaque<gridui::builder::${wname}>, public jac::ProtoBuilder::Properties {
-    static void destroyOpaque(JSRuntime* rt, gridui::builder::${wname}* ptr) noexcept { }
-
-    static void addProperties(JSContext* ctx, jac::Object proto) {
-        jac::FunctionFactory ff(ctx);
-
-        ${props}
-
-        proto.defineProperty("finish", ff.newFunctionThisVariadic([](jac::ContextRef ctx, jac::ValueWeak thisVal, std::vector<jac::ValueWeak> args) {
-            auto& builder = *GridUiBuilder${wname}::getOpaque(ctx, thisVal);
-            return jac::Class<GridUiWidget${wname}>::createInstance(ctx, new gridui::${wname}(std::move(builder.finish())));
-        }), jac::PropFlags::Enumerable);
+class ${wname}Builder {${builderMethods}
+public:
+    static jac::Object proto(jac::ContextRef ctx) {
+        auto proto = jac::Object::create(ctx);${builderProps}
+        return proto;
     }
+};
+
 };
 `
     },
@@ -125,36 +123,45 @@ struct GridUiBuilder${wname} : public jac::ProtoBuilder::Opaque<gridui::builder:
       widget = widget.type
       const wname = widget.name
 
-      let props = ''
+      let widgetMethods = ""
+      let widgetProps = ""
       for (const [name, prop] of Object.entries(widget.prototype.PROPERTIES)) {
         if (name in genericProps || !prop.editable) continue
 
         const typIn = Utils.getCppType(prop, false)
 
-        const nameCapital =
-          name.substring(0, 1).toUpperCase() + name.substring(1)
-        props += `
-        proto.defineProperty("set${nameCapital}", ff.newFunctionThisVariadic([](jac::ContextRef ctx, jac::ValueWeak thisVal, std::vector<jac::ValueWeak> args) {
-            if(args.size() < 1) throw jac::Exception::create(jac::Exception::Type::TypeError, "1 argument expected");
-            auto& w = *GridUiWidget${wname}::getOpaque(ctx, thisVal);
-            w.set${nameCapital}(args[0].to<${typIn}>());
-        }), jac::PropFlags::Enumerable);
-        proto.defineProperty("${name}", ff.newFunctionThisVariadic([](jac::ContextRef ctx, jac::ValueWeak thisVal, std::vector<jac::ValueWeak> args) {
-            auto& w = *GridUiWidget${wname}::getOpaque(ctx, thisVal);
-            return w.${name}();
-        }), jac::PropFlags::Enumerable);\n`
+        const setName = "set" + name.substring(0, 1).toUpperCase() + name.substring(1)
+        
+        widgetMethods += `
+    static JSValue ${setName}(JSContext* ctx_, JSValueConst thisVal, JSValueConst val) {
+        auto& widget = *reinterpret_cast<gridui::${wname}*>(JS_GetOpaque(thisVal, 1));
+        widget.${setName}(jac::ValueWeak(ctx_, val).to<${typIn}>());
+        return JS_UNDEFINED;
+    }
+    static JSValue ${name}(JSContext* ctx_, JSValueConst thisVal) {
+        auto& widget = *reinterpret_cast<gridui::${wname}*>(JS_GetOpaque(thisVal, 1));
+        return jac::Value::from(ctx_, widget.${name}()).loot().second;
+    }
+`
+        widgetProps += `\n        defineWidgetProperty(ctx, proto, "${name}", "${setName}", ${name}, ${setName});`
       }
 
       return `#pragma once
 
 #include <jac/machine/functionFactory.h>
 #include <gridui.h>
+#include "./_common.h"
 
-struct GridUiWidget${wname} : public jac::ProtoBuilder::Opaque<gridui::${wname}>, public jac::ProtoBuilder::Properties {
-    static void addProperties(JSContext* ctx, jac::Object proto) {
-        jac::FunctionFactory ff(ctx);
-        ${props}
+namespace gridui_jac {
+
+class ${wname}Widget {${widgetMethods}
+public:
+    static jac::Object proto(jac::ContextRef ctx) {
+        auto proto = jac::Object::create(ctx);${widgetProps}
+        return proto;
     }
+};
+
 };
 `
     },
@@ -165,24 +172,75 @@ struct GridUiWidget${wname} : public jac::ProtoBuilder::Opaque<gridui::${wname}>
         res += `#include "./builder/${t.name.toLowerCase()}.h"\n`
       }
 
+      for (const t of this.widgetTypes) {
+        res += `#include "./widgets/${t.name.toLowerCase()}.h"\n`
+      }
+
       res += "\n\n"
+
+      let id = 1;
+      for (const t of this.widgetTypes) {
+        const nameLower =
+          t.name.substring(0, 1).toLowerCase() + t.name.substring(1)
+
+        res += `proto.defineProperty("${nameLower}", ff.newFunctionThisVariadic(std::function(&builder<${id}, gridui::builder::${t.name}, gridui::${t.name}, ${t.name}Builder::proto, ${t.name}Widget::proto>)), jac::PropFlags::Enumerable);\n`
+        id++;
+      }
+
+      res += "\n\n"
+
+      return res
+    },
+    generateDTsFile() {
+      const genericProps = window.Widget.prototype.PROPERTIES
+
+      let builderMethods = ''
 
       for (const t of this.widgetTypes) {
         const nameLower =
           t.name.substring(0, 1).toLowerCase() + t.name.substring(1)
 
-        res += `proto.defineProperty("${nameLower}", ff.newFunctionThisVariadic(std::function(&builder<GridUiBuilder${t.name}, ${t.name}>)), jac::PropFlags::Enumerable);\n`
+          for (const [name, prop] of Object.entries(widget.prototype.PROPERTIES)) {
+            if (name in genericProps) continue
+
+            const typ = Utils.getCppType(prop, false)
+          }
+
+          builderMethods += `\n        ${nameLower}(x: number, y: number, w: number, h: number, uuid?: number, tab?: number): builder.${t.name};`
       }
 
-      res += "\n\n"
+      return `declare module "gridui" {
+    namespace widget {
+        interface Button {
+            color: string
+        }
+    }
 
-      for (const t of this.widgetTypes) {
-        res += `jac::Class<GridUiBuilder${t.name}>::init("gui${t.name}Builder");\n`
-        res += `jac::Class<GridUiWidget${t.name}>::init("gui${t.name}");\n`
-      }
+    namespace builder {
+        interface Button {
+            text(text: string): Button;
+            finish(): widget.Button;
+        }
+    }
 
-      return res
-    },
+    class Builder {${builderMethods}
+    }
+
+    /**
+     * Initialize GridUI.
+     * @param ownerName name of the owner, must match the name entered in RBController app.
+     * @param deviceName name of this device, visible in the RBController app.
+     * @param builderCallback callback, which receives the builder instance that can be used to create widgets.
+     */
+    function begin(ownerName: string, deviceName: string, builderCallback: (builder: Builder) => void): void;
+
+    /**
+     * Stop GridUI.
+     */
+    function end(): void;
+}
+`
+    }
     convertToRbJsonValue(name, prop) {
       switch (prop.type) {
         case Boolean:

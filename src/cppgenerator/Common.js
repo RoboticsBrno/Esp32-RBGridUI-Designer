@@ -58,6 +58,21 @@ export function getCppType(prop, isInputArg) {
   }
 }
 
+export function getTsType(prop, isInputArg) {
+  switch (prop.type) {
+    case String:
+      return "string"
+    case Number:
+      return 'number'
+    case Boolean:
+      return 'bool'
+    case Object:
+      return 'Record<string, any>'
+    default:
+      return 'any /* TODO: fix type */'
+  }
+}
+
 export function getRbJsonType(prop) {
   switch (prop.type) {
     case String:
