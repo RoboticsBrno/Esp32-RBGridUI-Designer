@@ -65,7 +65,7 @@ export function getTsType(prop, isInputArg) {
     case Number:
       return 'number'
     case Boolean:
-      return 'bool'
+      return 'boolean'
     case Object:
       return 'Record<string, any>'
     default:

@@ -81,8 +81,8 @@ export default {
 
       const genericProps = window.Widget.prototype.PROPERTIES
 
-      let builderMethods = ""
-      let builderProps = ""
+      let builderMethods = ''
+      let builderProps = ''
       for (const [name, prop] of Object.entries(widget.prototype.PROPERTIES)) {
         if (name in genericProps) continue
 
@@ -117,21 +117,22 @@ public:
 `
     },
     generateCodeRuntime(widget) {
-      if (widget === null) return ''
+      if (widget === null) return this.generateDTsFile()
       const genericProps = window.Widget.prototype.PROPERTIES
 
       widget = widget.type
       const wname = widget.name
 
-      let widgetMethods = ""
-      let widgetProps = ""
+      let widgetMethods = ''
+      let widgetProps = ''
       for (const [name, prop] of Object.entries(widget.prototype.PROPERTIES)) {
         if (name in genericProps || !prop.editable) continue
 
         const typIn = Utils.getCppType(prop, false)
 
-        const setName = "set" + name.substring(0, 1).toUpperCase() + name.substring(1)
-        
+        const setName =
+          'set' + name.substring(0, 1).toUpperCase() + name.substring(1)
+
         widgetMethods += `
     static JSValue ${setName}(JSContext* ctx_, JSValueConst thisVal, JSValueConst val) {
         auto& widget = *reinterpret_cast<gridui::${wname}*>(JS_GetOpaque(thisVal, 1));
@@ -176,18 +177,20 @@ public:
         res += `#include "./widgets/${t.name.toLowerCase()}.h"\n`
       }
 
-      res += "\n\n"
+      for (const t of this.widgetTypes) {
+        res += `${t.name}\n`
+      }
 
-      let id = 1;
+      res += '\n\n'
+
       for (const t of this.widgetTypes) {
         const nameLower =
           t.name.substring(0, 1).toLowerCase() + t.name.substring(1)
 
-        res += `proto.defineProperty("${nameLower}", ff.newFunctionThisVariadic(std::function(&builder<${id}, gridui::builder::${t.name}, gridui::${t.name}, ${t.name}Builder::proto, ${t.name}Widget::proto>)), jac::PropFlags::Enumerable);\n`
-        id++;
+        res += `proto.defineProperty("${nameLower}", ff.newFunctionThisVariadic(std::function(&builder<WidgetTypeId::${t.name}, gridui::builder::${t.name}, gridui::${t.name}, ${t.name}Builder::proto, ${t.name}Widget::proto>)), jac::PropFlags::Enumerable);\n`
       }
 
-      res += "\n\n"
+      res += '\n\n'
 
       return res
     },
@@ -195,33 +198,41 @@ public:
       const genericProps = window.Widget.prototype.PROPERTIES
 
       let builderMethods = ''
+      let builderInterfaces = ''
+      let widgetInterfaces = ''
 
       for (const t of this.widgetTypes) {
         const nameLower =
           t.name.substring(0, 1).toLowerCase() + t.name.substring(1)
 
-          for (const [name, prop] of Object.entries(widget.prototype.PROPERTIES)) {
-            if (name in genericProps) continue
+        builderInterfaces += `\n        interface ${t.name} {`
+        widgetInterfaces += `\n        interface ${t.name} {`
 
-            const typ = Utils.getCppType(prop, false)
+        for (const [name, prop] of Object.entries(
+          t.type.prototype.PROPERTIES
+        )) {
+          if (name in genericProps) continue
+
+          const typ = Utils.getTsType(prop, false)
+
+          builderInterfaces += `\n            ${name}(${name}: ${typ}): ${t.name};`
+          if(prop.editable) {
+            widgetInterfaces += `\n            ${name}: ${typ}`
           }
 
-          builderMethods += `\n        ${nameLower}(x: number, y: number, w: number, h: number, uuid?: number, tab?: number): builder.${t.name};`
+        }
+
+        builderInterfaces += `\n\n            finish(): widget.${t.name};`
+        builderInterfaces += "\n        }\n"
+        widgetInterfaces += "\n        }\n"
+
+        builderMethods += `\n        ${nameLower}(x: number, y: number, w: number, h: number, uuid?: number, tab?: number): builder.${t.name};`
       }
 
       return `declare module "gridui" {
-    namespace widget {
-        interface Button {
-            color: string
-        }
-    }
+    namespace widget {${widgetInterfaces}    }
 
-    namespace builder {
-        interface Button {
-            text(text: string): Button;
-            finish(): widget.Button;
-        }
-    }
+    namespace builder {${builderInterfaces}    }
 
     class Builder {${builderMethods}
     }
@@ -240,7 +251,7 @@ public:
     function end(): void;
 }
 `
-    }
+    },
     convertToRbJsonValue(name, prop) {
       switch (prop.type) {
         case Boolean:
