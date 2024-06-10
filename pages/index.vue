@@ -644,7 +644,9 @@ export default {
     formatRequiredVersion(w) {
       const ver = w.prototype.MIN_LIBRARY_VERSION
       if (ver === 0x040000) return null
-      return `${(ver >> 16).toString(16)}.${((ver >> 8) & 0xff).toString(16)}.${(ver & 0xff).toString(16)}`
+      return `${(ver >> 16).toString(16)}.${((ver >> 8) & 0xff).toString(
+        16
+      )}.${(ver & 0xff).toString(16)}`
     },
     modifyTabCount(delta) {
       if (this.tabsCount + delta < 1) {

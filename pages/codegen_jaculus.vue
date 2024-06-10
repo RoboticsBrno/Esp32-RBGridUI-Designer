@@ -51,6 +51,18 @@ import '~/gridui/web/js/07_grid'
 
 const req = require.context('~/gridui/web/js/widgets', true, /\.js$/)
 req.keys().forEach((key) => req(key))
+
+// src/widgets/widget.h
+const RUNTIME_WIDGET_PROPS = {
+  uuid: false,
+  widgetX: true,
+  widgetY: true,
+  widgetW: true,
+  widgetH: true,
+  widgetTab: true
+  // "css": true, - more complex
+}
+
 export default {
   components: {
     CodeDisplay
@@ -98,6 +110,13 @@ export default {
         proto.set("${name}", jac::Value(ctx, JS_NewCFunction(ctx, ${name}, "${name}", 1)));`
       }
 
+      if (Object.entries(widget.prototype.EVENTS).length !== 0) {
+        builderProps += `\n`
+        for (const [, methodName] of Object.entries(widget.prototype.EVENTS)) {
+          builderProps += `\n        defineBuilderCallback<builder::${wname}, ${wname}, &builder::${wname}::${methodName}>(ctx, proto, "${methodName}");`
+        }
+      }
+
       return `#pragma once
 
 #include <jac/machine/functionFactory.h>
@@ -108,7 +127,11 @@ namespace gridui_jac {
 class ${wname}Builder {${builderMethods}
 public:
     static jac::Object proto(jac::ContextRef ctx) {
-        auto proto = jac::Object::create(ctx);${builderProps}
+        using namespace gridui;
+
+        auto proto = jac::Object::create(ctx);
+${builderProps}
+
         return proto;
     }
 };
@@ -116,16 +139,12 @@ public:
 };
 `
     },
-    generateCodeRuntime(widget) {
-      if (widget === null) return this.generateDTsFile()
+    generateRuntimeProps(wname, prototype) {
       const genericProps = window.Widget.prototype.PROPERTIES
-
-      widget = widget.type
-      const wname = widget.name
 
       let widgetMethods = ''
       let widgetProps = ''
-      for (const [name, prop] of Object.entries(widget.prototype.PROPERTIES)) {
+      for (const [name, prop] of Object.entries(prototype)) {
         if (name in genericProps || !prop.editable) continue
 
         const typIn = Utils.getCppType(prop, false)
@@ -146,6 +165,17 @@ public:
 `
         widgetProps += `\n        defineWidgetProperty(ctx, proto, "${name}", "${setName}", ${name}, ${setName});`
       }
+      return [widgetMethods, widgetProps]
+    },
+    generateCodeRuntime(widget) {
+      if (widget === null) return this.generateDTsFile()
+
+      widget = widget.type
+      const wname = widget.name
+      const [widgetMethods, widgetProps] = this.generateRuntimeProps(
+        wname,
+        widget.prototype
+      )
 
       return `#pragma once
 
@@ -205,8 +235,8 @@ public:
         const nameLower =
           t.name.substring(0, 1).toLowerCase() + t.name.substring(1)
 
-        builderInterfaces += `\n        interface ${t.name} {`
-        widgetInterfaces += `\n        interface ${t.name} {`
+        builderInterfaces += `\n        interface ${t.name} extends Base {`
+        widgetInterfaces += `\n        interface ${t.name} extends Base {`
 
         for (const [name, prop] of Object.entries(
           t.type.prototype.PROPERTIES
@@ -216,23 +246,39 @@ public:
           const typ = Utils.getTsType(prop, false)
 
           builderInterfaces += `\n            ${name}(${name}: ${typ}): ${t.name};`
-          if(prop.editable) {
+          if (prop.editable) {
             widgetInterfaces += `\n            ${name}: ${typ}`
           }
-
         }
 
-        builderInterfaces += `\n\n            finish(): widget.${t.name};`
-        builderInterfaces += "\n        }\n"
-        widgetInterfaces += "\n        }\n"
+        if (Object.entries(t.type.prototype.EVENTS).length !== 0) {
+          builderInterfaces += `\n`
+          for (const [, methodName] of Object.entries(
+            t.type.prototype.EVENTS
+          )) {
+            builderInterfaces += `\n            ${methodName}(${nameLower}: widget.${t.name})`
+          }
+        }
+
+        builderInterfaces += '\n        }\n'
+        widgetInterfaces += '\n        }\n'
 
         builderMethods += `\n        ${nameLower}(x: number, y: number, w: number, h: number, uuid?: number, tab?: number): builder.${t.name};`
       }
 
       return `declare module "gridui" {
-    namespace widget {${widgetInterfaces}    }
+    namespace widget {
+        interface Base {
 
-    namespace builder {${builderInterfaces}    }
+        }
+      ${widgetInterfaces}    }
+
+    namespace builder {
+        interface Base {
+            css(key: string, value: str): this;
+            finish(): this;
+        }
+${builderInterfaces}    }
 
     class Builder {${builderMethods}
     }

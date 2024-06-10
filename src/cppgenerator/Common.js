@@ -61,7 +61,7 @@ export function getCppType(prop, isInputArg) {
 export function getTsType(prop, isInputArg) {
   switch (prop.type) {
     case String:
-      return "string"
+      return 'string'
     case Number:
       return 'number'
     case Boolean:
