@@ -9,7 +9,7 @@
           text
           block
           color="accent"
-          @click="showCode = !showCode"
+          @click="onShowClick"
           v-text="showCode ? 'Hide' : 'Show'"
         ></v-btn>
       </v-col>
@@ -59,12 +59,27 @@ export default {
       type: Boolean,
       required: false,
       default: false
+    },
+    hidden: {
+      type: Boolean,
+      required: false,
+      default: true,
     }
   },
   data() {
     return {
       showCode: !this.hideable
     }
+  },
+  watch: {
+    hidden: {
+      immediate: true,
+      handler() {
+        if(this.showCode !== !this.hidden) {
+          this.showCode = !this.hidden
+        }
+      }
+    },
   },
   computed: {
     highlighted() {
@@ -83,6 +98,10 @@ export default {
         title: 'Code copied',
         text: 'The code was copied into your clipboard.'
       })
+    },
+    onShowClick() {
+      this.showCode = !this.showCode
+      this.$emit("update:hidden", !this.showCode)
     }
   }
 }

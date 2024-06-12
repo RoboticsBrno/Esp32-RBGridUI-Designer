@@ -141,8 +141,11 @@
           :hideable="true"
         />
       </v-card>
-      <v-card class="mt-1 code-card">
-        <code-display :value="cppCode" language="cpp" title="Generated C++" />
+      <v-card class="mt-1 code-card" style="flex-grow: 0">
+        <code-display :value="cppCode" language="cpp" title="Generated C++" :hideable="true" :hidden.sync="hideCpp"/>
+      </v-card>
+      <v-card class="mt-1 code-card" style="flex-grow: 0">
+        <code-display :value="tsCode" language="typescript" title="Generated TypeScript" :hideable="true" :hidden.sync="hideTs"/>
       </v-card>
     </div>
   </div>
@@ -153,7 +156,8 @@ import DefaultWidgetStates from '~/src/DefaultWidgetStates'
 import WidgetAdder from '~/src/WidgetAdder'
 import WidgetCopyPaster from '~/src/WidgetCopyPaster'
 import * as Undo from '~/src/UndoStack'
-import * as Header from '~/src/cppgenerator/Header'
+import * as CppGen from '~/src/layoutgen/Cpp'
+import * as TsGen from '~/src/layoutgen/Typescript'
 
 import CodeDisplay from '~/components/CodeDisplay'
 import ImportDialog from '~/components/ImportDialog'
@@ -207,11 +211,14 @@ export default {
       selectedWidgets: [],
       layout: [],
       cppCode: '',
+      tsCode: '',
       updateTimeout: null,
       undoStack: new Undo.UndoStack(),
       copyPaster: null,
       tabsCount: 1,
-      activeTab: 0
+      activeTab: 0,
+      hideCpp: window.localStorage.getItem("hideCpp") === "true",
+      hideTs: window.localStorage.getItem("hideTs") === "true",
     }
   },
   computed: {
@@ -259,7 +266,13 @@ export default {
   watch: {
     activeTab(val) {
       gGrid.setCurrentTab(val)
-    }
+    },
+    hideCpp() {
+      window.localStorage.setItem("hideCpp", this.hideCpp ? "true" : "false")
+    },
+    hideTs() {
+      window.localStorage.setItem("hideTs", this.hideTs ? "true" : "false")
+    },
   },
   mounted() {
     if (gGrid !== null) return
@@ -550,7 +563,8 @@ export default {
       this.layout = layout
     },
     updateCpp() {
-      this.cppCode = Header.generate(gGrid.widgets, this.layout)
+      this.cppCode = CppGen.generate(gGrid.widgets, this.layout)
+      this.tsCode = TsGen.generate(gGrid.widgets, this.layout)
     },
     refreshSelectedWidgets() {
       const filtered = this.selectedWidgets.filter((w) =>

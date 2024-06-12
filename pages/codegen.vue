@@ -43,7 +43,7 @@
 
 <script>
 import CodeDisplay from '~/components/CodeDisplay'
-import * as Utils from '~/src/cppgenerator/Common'
+import * as Utils from '~/src/layoutgen/Common'
 
 import '~/gridui/web/js/01_header'
 import '~/gridui/web/js/05_widget'
