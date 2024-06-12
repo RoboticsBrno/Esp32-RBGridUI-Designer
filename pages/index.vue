@@ -159,7 +159,7 @@ import CodeDisplay from '~/components/CodeDisplay'
 import ImportDialog from '~/components/ImportDialog'
 import PropertyTable from '~/components/PropertyTable'
 
-import '~/gridui/web/js/00_header'
+import '~/gridui/web/js/01_header'
 import '~/gridui/web/js/05_widget'
 import '~/gridui/web/js/07_grid'
 

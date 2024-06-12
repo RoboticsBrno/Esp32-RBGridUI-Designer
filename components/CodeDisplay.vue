@@ -37,6 +37,7 @@ import 'prismjs/components/prism-javascript.js'
 import 'prismjs/components/prism-clike.js'
 import 'prismjs/components/prism-c.js'
 import 'prismjs/components/prism-cpp.js'
+import 'prismjs/components/prism-typescript.js'
 
 import copy from 'copy-to-clipboard'
 

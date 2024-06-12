@@ -34,7 +34,7 @@
     />
     <code-display
       :value="generateCodeRuntime(selectedWidget)"
-      language="cpp"
+      :language="!selectedWidget ? 'typescript' : 'cpp'"
       title="Runtime"
       class="ms-1"
     />
@@ -45,7 +45,7 @@
 import CodeDisplay from '~/components/CodeDisplay'
 import * as Utils from '~/src/cppgenerator/Common'
 
-import '~/gridui/web/js/00_header'
+import '~/gridui/web/js/01_header'
 import '~/gridui/web/js/05_widget'
 import '~/gridui/web/js/07_grid'
 
@@ -54,13 +54,34 @@ req.keys().forEach((key) => req(key))
 
 // src/widgets/widget.h
 const RUNTIME_WIDGET_PROPS = {
-  uuid: false,
-  widgetX: true,
-  widgetY: true,
-  widgetW: true,
-  widgetH: true,
-  widgetTab: true
+  uuid: { type: Number, editable: false },
+  widgetX: { type: Number },
+  widgetY: { type: Number },
+  widgetW: { type: Number },
+  widgetH: { type: Number },
+  widgetTab: { type: Number }
   // "css": true, - more complex
+}
+
+const EXTRA_RUNTIME_PROPS = {
+  Arm: {
+    x: { type: Number, editable: false },
+    y: { type: Number, editable: false }
+  },
+  Button: {
+    pressed: { type: Boolean, editable: false }
+  },
+  Joystick: {
+    x: { type: Number, editable: false },
+    y: { type: Number, editable: false }
+  },
+  Orientation: {
+    yaw: { type: Number, editable: false },
+    pitch: { type: Number, editable: false },
+    roll: { type: Number, editable: false },
+    joystickX: { type: Number, editable: false },
+    joystickY: { type: Number, editable: false }
+  }
 }
 
 export default {
@@ -76,6 +97,10 @@ export default {
           type: w
         }
       })
+      types.push({
+        name: 'Widget',
+        type: window.Widget
+      })
     }
     return {
       widgetTypes: types,
@@ -86,6 +111,10 @@ export default {
     generateCodeBuilder(widget) {
       if (widget === null) {
         return this.generateGridUiMethods()
+      }
+
+      if (widget.name === 'Widget') {
+        return ''
       }
 
       widget = widget.type
@@ -139,43 +168,67 @@ ${builderProps}
 };
 `
     },
-    generateRuntimeProps(wname, prototype) {
+    generateRuntimeProps(wname, properties, ignoreGeneric) {
       const genericProps = window.Widget.prototype.PROPERTIES
 
       let widgetMethods = ''
       let widgetProps = ''
-      for (const [name, prop] of Object.entries(prototype)) {
-        if (name in genericProps || !prop.editable) continue
+      for (const [name, prop] of Object.entries(properties)) {
+        if (ignoreGeneric !== false && name in genericProps) continue
 
         const typIn = Utils.getCppType(prop, false)
 
-        const setName =
-          'set' + name.substring(0, 1).toUpperCase() + name.substring(1)
+        if (prop.editable !== false) {
+          const setName =
+            'set' + name.substring(0, 1).toUpperCase() + name.substring(1)
 
-        widgetMethods += `
+          widgetProps += `\n        defineWidgetProperty(ctx, proto, "${name}", "${setName}", ${name}, ${setName});`
+
+          widgetMethods += `
     static JSValue ${setName}(JSContext* ctx_, JSValueConst thisVal, JSValueConst val) {
         auto& widget = *reinterpret_cast<gridui::${wname}*>(JS_GetOpaque(thisVal, 1));
         widget.${setName}(jac::ValueWeak(ctx_, val).to<${typIn}>());
         return JS_UNDEFINED;
-    }
+    }`
+        } else {
+          widgetProps += `\n        defineWidgetPropertyReadOnly(ctx, proto, "${name}", ${name});`
+        }
+
+        widgetMethods += `
     static JSValue ${name}(JSContext* ctx_, JSValueConst thisVal) {
         auto& widget = *reinterpret_cast<gridui::${wname}*>(JS_GetOpaque(thisVal, 1));
         return jac::Value::from(ctx_, widget.${name}()).loot().second;
     }
 `
-        widgetProps += `\n        defineWidgetProperty(ctx, proto, "${name}", "${setName}", ${name}, ${setName});`
       }
       return [widgetMethods, widgetProps]
     },
     generateCodeRuntime(widget) {
       if (widget === null) return this.generateDTsFile()
 
-      widget = widget.type
       const wname = widget.name
-      const [widgetMethods, widgetProps] = this.generateRuntimeProps(
+      if (wname === 'Widget') {
+        widget = {
+          prototype: {
+            PROPERTIES: RUNTIME_WIDGET_PROPS
+          }
+        }
+      } else {
+        widget = widget.type
+      }
+
+      let [widgetMethods, widgetProps] = this.generateRuntimeProps(
         wname,
-        widget.prototype
+        widget.prototype.PROPERTIES
       )
+
+      const [extraMethods, extraProps] = this.generateRuntimeProps(
+        wname,
+        EXTRA_RUNTIME_PROPS[wname] || {},
+        false
+      )
+      widgetMethods += extraMethods
+      widgetProps += extraProps
 
       return `#pragma once
 
@@ -227,6 +280,17 @@ public:
     generateDTsFile() {
       const genericProps = window.Widget.prototype.PROPERTIES
 
+      let baseProps = ''
+
+      for (const [name, info] of Object.entries(RUNTIME_WIDGET_PROPS)) {
+        const typ = Utils.getTsType(info, false)
+        if (info.editable === false) {
+          baseProps += `\n          readonly ${name}: ${typ}`
+        } else {
+          baseProps += `\n          ${name}: ${typ}`
+        }
+      }
+
       let builderMethods = ''
       let builderInterfaces = ''
       let widgetInterfaces = ''
@@ -245,38 +309,50 @@ public:
 
           const typ = Utils.getTsType(prop, false)
 
-          builderInterfaces += `\n            ${name}(${name}: ${typ}): ${t.name};`
+          builderInterfaces += `\n            ${name}(${name}: ${typ}): ${t.name}`
           if (prop.editable) {
             widgetInterfaces += `\n            ${name}: ${typ}`
           }
         }
 
-        if (Object.entries(t.type.prototype.EVENTS).length !== 0) {
+        for (const [name, prop] of Object.entries(
+          EXTRA_RUNTIME_PROPS[t.name] || {}
+        )) {
+          const typ = Utils.getTsType(prop, false)
+          if (prop.editable !== false) {
+            widgetInterfaces += `\n            ${name}: ${typ}`
+          } else {
+            widgetInterfaces += `\n            readonly ${name}: ${typ}`
+          }
+        }
+
+        if (Object.entries(t.type.prototype.EVENTS || {}).length !== 0) {
           builderInterfaces += `\n`
           for (const [, methodName] of Object.entries(
             t.type.prototype.EVENTS
           )) {
-            builderInterfaces += `\n            ${methodName}(${nameLower}: widget.${t.name})`
+            builderInterfaces += `\n            ${methodName}(callback: (${nameLower}: widget.${t.name}) => void): ${t.name}`
           }
         }
 
         builderInterfaces += '\n        }\n'
         widgetInterfaces += '\n        }\n'
 
-        builderMethods += `\n        ${nameLower}(x: number, y: number, w: number, h: number, uuid?: number, tab?: number): builder.${t.name};`
+        builderMethods += `\n        ${nameLower}(x: number, y: number, w: number, h: number, uuid?: number, tab?: number): builder.${t.name}`
       }
 
       return `declare module "gridui" {
     namespace widget {
-        interface Base {
-
+        interface Base {${baseProps}
+          css(key: string): string
+          setCss(key: string, value: string): void
         }
       ${widgetInterfaces}    }
 
     namespace builder {
         interface Base {
-            css(key: string, value: str): this;
-            finish(): this;
+            css(key: string, value: string): this
+            finish(): this
         }
 ${builderInterfaces}    }
 
@@ -289,12 +365,19 @@ ${builderInterfaces}    }
      * @param deviceName name of this device, visible in the RBController app.
      * @param builderCallback callback, which receives the builder instance that can be used to create widgets.
      */
-    function begin(ownerName: string, deviceName: string, builderCallback: (builder: Builder) => void): void;
+    function begin(ownerName: string, deviceName: string, builderCallback: (builder: Builder) => void): void
 
     /**
      * Stop GridUI.
      */
-    function end(): void;
+    function end(): void
+
+    /**
+     * Returns included GridUI version as number, to be compared with hex representation of the version.
+     * 
+     * For example, for version 5.1.0, do: \`gridui.version() >= 0x050100\`
+     */
+    function version(): number
 }
 `
     },
