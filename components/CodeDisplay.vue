@@ -75,7 +75,7 @@ export default {
     hidden: {
       immediate: true,
       handler() {
-        if(this.showCode !== !this.hidden) {
+        if(this.hideable && this.showCode !== !this.hidden) {
           this.showCode = !this.hidden
         }
       }

@@ -296,6 +296,10 @@ public:
       let widgetInterfaces = ''
 
       for (const t of this.widgetTypes) {
+        if(t.name === "Widget") {
+          continue
+        }
+
         const nameLower =
           t.name.substring(0, 1).toLowerCase() + t.name.substring(1)
 
