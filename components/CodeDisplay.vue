@@ -9,7 +9,7 @@
           text
           block
           color="accent"
-          @click="showCode = !showCode"
+          @click="onShowClick"
           v-text="showCode ? 'Hide' : 'Show'"
         ></v-btn>
       </v-col>
@@ -37,6 +37,7 @@ import 'prismjs/components/prism-javascript.js'
 import 'prismjs/components/prism-clike.js'
 import 'prismjs/components/prism-c.js'
 import 'prismjs/components/prism-cpp.js'
+import 'prismjs/components/prism-typescript.js'
 
 import copy from 'copy-to-clipboard'
 
@@ -58,12 +59,27 @@ export default {
       type: Boolean,
       required: false,
       default: false
+    },
+    hidden: {
+      type: Boolean,
+      required: false,
+      default: true,
     }
   },
   data() {
     return {
       showCode: !this.hideable
     }
+  },
+  watch: {
+    hidden: {
+      immediate: true,
+      handler() {
+        if(this.hideable && this.showCode !== !this.hidden) {
+          this.showCode = !this.hidden
+        }
+      }
+    },
   },
   computed: {
     highlighted() {
@@ -82,6 +98,10 @@ export default {
         title: 'Code copied',
         text: 'The code was copied into your clipboard.'
       })
+    },
+    onShowClick() {
+      this.showCode = !this.showCode
+      this.$emit("update:hidden", !this.showCode)
     }
   }
 }

@@ -33,7 +33,8 @@
 </template>
 
 <script>
-import * as Header from '~/src/cppgenerator/Header'
+import * as CppGen from '~/src/layoutgen/Cpp'
+import * as TsGen from '~/src/layoutgen/Typescript'
 
 export default {
   props: {},
@@ -54,7 +55,7 @@ export default {
       this.error = ''
       if (val === '') return
 
-      const layout = Header.parse(val)
+      const layout = CppGen.parse(val) || TsGen.parse(val)
       if (layout === null) {
         this.error = 'Failed to parse the layout!'
       } else {
