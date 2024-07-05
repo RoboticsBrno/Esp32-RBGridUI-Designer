@@ -9,8 +9,7 @@ function genMember(widget, namespace) {
 function genBuilder(widget, isUsingTabs) {
   const type = widget.constructor.name
   const proto = Object.getPrototypeOf(widget)
-  const nameLower =
-          type.substring(0, 1).toLowerCase() + type.substring(1)
+  const nameLower = type.substring(0, 1).toLowerCase() + type.substring(1)
 
   const id = Common.getPropertyValue(widget, 'id')
   let res = `${id}: builder.${nameLower}(`
@@ -28,8 +27,8 @@ function genBuilder(widget, isUsingTabs) {
     if (Common.isDefaultPropValue(widget, name, prop)) continue
 
     const val = Common.getPropertyValue(widget, name, prop)
-    res += "\n" + Common.formatProperty(name, val, '                    ')
-    res = res.substring(0, res.length-1)
+    res += '\n' + Common.formatProperty(name, val, '                    ')
+    res = res.substring(0, res.length - 1)
   }
   return res
 }
@@ -55,8 +54,12 @@ export function generate(widgets, layout) {
   const builder = widgets
     .map((w) => genBuilder(w, isUsingTabs))
     .join(',\n                ')
-  const builderMembers = widgets.map((w) => genMember(w, 'gridui.builder')).join('\n    ')
-  const layoutMembers = widgets.map((w) => genMember(w, 'gridui.widget')).join('\n    ')
+  const builderMembers = widgets
+    .map((w) => genMember(w, 'gridui.builder'))
+    .join('\n    ')
+  const layoutMembers = widgets
+    .map((w) => genMember(w, 'gridui.widget'))
+    .join('\n    ')
 
   const baseMinVer = isUsingTabs ? 0x040900 : 0x000000
   const minVersion = widgets
@@ -122,6 +125,7 @@ const layout = {
 
             for(const key in layoutBuilder) {
                 layout[key] = layoutBuilder[key].finish()
+                layoutBuilder[key] = undefined
             }
         })
     }

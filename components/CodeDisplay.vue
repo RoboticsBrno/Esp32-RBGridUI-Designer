@@ -63,23 +63,13 @@ export default {
     hidden: {
       type: Boolean,
       required: false,
-      default: true,
+      default: true
     }
   },
   data() {
     return {
       showCode: !this.hideable
     }
-  },
-  watch: {
-    hidden: {
-      immediate: true,
-      handler() {
-        if(this.hideable && this.showCode !== !this.hidden) {
-          this.showCode = !this.hidden
-        }
-      }
-    },
   },
   computed: {
     highlighted() {
@@ -88,6 +78,16 @@ export default {
         Prism.languages[this.language],
         this.language
       )
+    }
+  },
+  watch: {
+    hidden: {
+      immediate: true,
+      handler() {
+        if (this.hideable && this.showCode !== !this.hidden) {
+          this.showCode = !this.hidden
+        }
+      }
     }
   },
   methods: {
@@ -101,7 +101,7 @@ export default {
     },
     onShowClick() {
       this.showCode = !this.showCode
-      this.$emit("update:hidden", !this.showCode)
+      this.$emit('update:hidden', !this.showCode)
     }
   }
 }

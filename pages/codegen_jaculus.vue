@@ -12,6 +12,17 @@
         gridui.h methods
       </v-btn>
 
+      <v-btn
+        block
+        color="secondary"
+        class="justify-start"
+        large
+        text
+        @click="onDownloadClick"
+      >
+        Download zip
+      </v-btn>
+
       <v-card-title>Widgets</v-card-title>
       <v-btn
         v-for="t in widgetTypes"
@@ -42,6 +53,7 @@
 </template>
 
 <script>
+import JSZip from 'jszip'
 import CodeDisplay from '~/components/CodeDisplay'
 import * as Utils from '~/src/layoutgen/Common'
 
@@ -130,19 +142,19 @@ export default {
         const typ = Utils.getCppType(prop, false)
         builderMethods += `
     static JSValue ${name}(JSContext* ctx_, JSValueConst thisVal, int argc, JSValueConst* argv) {
-        auto& builder = *reinterpret_cast<gridui::builder::${wname}*>(JS_GetOpaque(thisVal, 1));
+        auto& builder = builderOpaque<gridui::builder::${wname}>(thisVal);
         builder.${name}(jac::ValueWeak(ctx_, argv[0]).to<${typ}>());
         return JS_DupValue(ctx_, thisVal);
     }
 `
         builderProps += `
-        proto.set("${name}", jac::Value(ctx, JS_NewCFunction(ctx, ${name}, "${name}", 1)));`
+        if(name == "${name}") return ${name};`
       }
 
       if (Object.entries(widget.prototype.EVENTS).length !== 0) {
         builderProps += `\n`
         for (const [, methodName] of Object.entries(widget.prototype.EVENTS)) {
-          builderProps += `\n        defineBuilderCallback<builder::${wname}, ${wname}, &builder::${wname}::${methodName}>(ctx, proto, "${methodName}");`
+          builderProps += `\n        if(name == "${methodName}") return &builderCallbackImpl<builder::${wname}, ${wname}, &builder::${wname}::${methodName}>;`
         }
       }
 
@@ -151,17 +163,20 @@ export default {
 #include <jac/machine/functionFactory.h>
 #include <gridui.h>
 
+#include "../widgets/_common.h"
+
 namespace gridui_jac {
 
 class ${wname}Builder {${builderMethods}
 public:
-    static jac::Object proto(jac::ContextRef ctx) {
+    static JSCFunction *getPropFunc(const AtomString& name) {
         using namespace gridui;
 
-        auto proto = jac::Object::create(ctx);
+        if(name == "css") return builderCss<builder::${wname}>;
+        if(name == "finish") return builderFinish<WidgetTypeId::${wname}, builder::${wname}, ${wname}>;
 ${builderProps}
 
-        return proto;
+        return nullptr;
     }
 };
 
@@ -182,21 +197,30 @@ ${builderProps}
           const setName =
             'set' + name.substring(0, 1).toUpperCase() + name.substring(1)
 
-          widgetProps += `\n        defineWidgetProperty(ctx, proto, "${name}", "${setName}", ${name}, ${setName});`
+          widgetProps += `
+        if(name == "${name}") {
+            *getter = ${name};
+            *setter = ${setName};
+            return;
+        }`
 
           widgetMethods += `
     static JSValue ${setName}(JSContext* ctx_, JSValueConst thisVal, JSValueConst val) {
-        auto& widget = *reinterpret_cast<gridui::${wname}*>(JS_GetOpaque(thisVal, 1));
+        auto& widget = widgetOpaque<gridui::${wname}>(thisVal);
         widget.${setName}(jac::ValueWeak(ctx_, val).to<${typIn}>());
         return JS_UNDEFINED;
     }`
         } else {
-          widgetProps += `\n        defineWidgetPropertyReadOnly(ctx, proto, "${name}", ${name});`
+          widgetProps += `
+        if(name == "${name}") {
+            *getter = ${name};
+            return;
+        }`
         }
 
         widgetMethods += `
     static JSValue ${name}(JSContext* ctx_, JSValueConst thisVal) {
-        auto& widget = *reinterpret_cast<gridui::${wname}*>(JS_GetOpaque(thisVal, 1));
+        auto& widget = widgetOpaque<gridui::${wname}>(thisVal);
         return jac::Value::from(ctx_, widget.${name}()).loot().second;
     }
 `
@@ -240,9 +264,7 @@ namespace gridui_jac {
 
 class ${wname}Widget {${widgetMethods}
 public:
-    static jac::Object proto(jac::ContextRef ctx) {
-        auto proto = jac::Object::create(ctx);${widgetProps}
-        return proto;
+    static void getProperty(const AtomString& name, qjsGetter* getter, qjsSetter *setter) {${widgetProps}
     }
 };
 
@@ -267,10 +289,30 @@ public:
       res += '\n\n'
 
       for (const t of this.widgetTypes) {
+        if (t.name === 'Widget') continue
+
         const nameLower =
           t.name.substring(0, 1).toLowerCase() + t.name.substring(1)
 
-        res += `proto.defineProperty("${nameLower}", ff.newFunctionThisVariadic(std::function(&builder<WidgetTypeId::${t.name}, gridui::builder::${t.name}, gridui::${t.name}, ${t.name}Builder::proto, ${t.name}Widget::proto>)), jac::PropFlags::Enumerable);\n`
+        res += `proto.defineProperty("${nameLower}", ff.newFunctionThisVariadic(std::function(&builder<gridui::builder::${t.name}, gridui::${t.name}>)), jac::PropFlags::Enumerable);\n`
+      }
+
+      res += '\n\n'
+
+      let elseStr = ''
+      for (const t of this.widgetTypes) {
+        if (t.name === 'Widget') continue
+
+        res += `${elseStr}if(literalEqual(wName, wNameLen, "${t.name}")) getFunc = ${t.name}Builder::getPropFunc(propName);\n`
+        elseStr = 'else '
+      }
+
+      res += '\n\n'
+
+      for (const t of this.widgetTypes) {
+        if (t.name === 'Widget') continue
+
+        res += `case WidgetTypeId::${t.name}: ${t.name}Widget::getProperty(propName, &getter, &setter); break;\n`
       }
 
       res += '\n\n'
@@ -296,7 +338,7 @@ public:
       let widgetInterfaces = ''
 
       for (const t of this.widgetTypes) {
-        if(t.name === "Widget") {
+        if (t.name === 'Widget') {
           continue
         }
 
@@ -339,6 +381,8 @@ public:
           }
         }
 
+        builderInterfaces += `\n\n            finish(): widget.${t.name}`
+
         builderInterfaces += '\n        }\n'
         widgetInterfaces += '\n        }\n'
 
@@ -356,7 +400,6 @@ public:
     namespace builder {
         interface Base {
             css(key: string, value: string): this
-            finish(): this
         }
 ${builderInterfaces}    }
 
@@ -392,6 +435,36 @@ ${builderInterfaces}    }
         default:
           return name
       }
+    },
+    async onDownloadClick() {
+      const zip = new JSZip()
+
+      for (const t of this.widgetTypes) {
+        let filename = t.name.toLowerCase() + '.h'
+        if (t.name === 'Widget') {
+          filename = 'base.h'
+        }
+
+        const builderFile = this.generateCodeBuilder(t)
+        if (builderFile) {
+          zip.file(`builder/${filename}`, builderFile)
+        }
+
+        const widgetFile = this.generateCodeRuntime(t)
+        if (widgetFile) {
+          zip.file(`widgets/${filename}`, widgetFile)
+        }
+      }
+
+      const blob = await zip.generateAsync({ type: 'blob' })
+
+      const element = document.createElement('a')
+      element.setAttribute('href', window.URL.createObjectURL(blob))
+      element.setAttribute('download', 'gridui_generated.zip')
+      element.style.display = 'none'
+      document.body.appendChild(element)
+      element.click()
+      document.body.removeChild(element)
     }
   }
 }

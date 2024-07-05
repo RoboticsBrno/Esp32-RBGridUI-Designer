@@ -142,10 +142,22 @@
         />
       </v-card>
       <v-card class="mt-1 code-card" style="flex-grow: 0">
-        <code-display :value="cppCode" language="cpp" title="Generated C++" :hideable="true" :hidden.sync="hideCpp"/>
+        <code-display
+          :value="cppCode"
+          language="cpp"
+          title="Generated C++"
+          :hideable="true"
+          :hidden.sync="hideCpp"
+        />
       </v-card>
       <v-card class="mt-1 code-card" style="flex-grow: 0">
-        <code-display :value="tsCode" language="typescript" title="Generated TypeScript" :hideable="true" :hidden.sync="hideTs"/>
+        <code-display
+          :value="tsCode"
+          language="typescript"
+          title="Generated TypeScript"
+          :hideable="true"
+          :hidden.sync="hideTs"
+        />
       </v-card>
     </div>
   </div>
@@ -217,8 +229,8 @@ export default {
       copyPaster: null,
       tabsCount: 1,
       activeTab: 0,
-      hideCpp: window.localStorage.getItem("hideCpp") === "true",
-      hideTs: window.localStorage.getItem("hideTs") === "true",
+      hideCpp: window.localStorage.getItem('hideCpp') === 'true',
+      hideTs: window.localStorage.getItem('hideTs') === 'true'
     }
   },
   computed: {
@@ -268,11 +280,11 @@ export default {
       gGrid.setCurrentTab(val)
     },
     hideCpp() {
-      window.localStorage.setItem("hideCpp", this.hideCpp ? "true" : "false")
+      window.localStorage.setItem('hideCpp', this.hideCpp ? 'true' : 'false')
     },
     hideTs() {
-      window.localStorage.setItem("hideTs", this.hideTs ? "true" : "false")
-    },
+      window.localStorage.setItem('hideTs', this.hideTs ? 'true' : 'false')
+    }
   },
   mounted() {
     if (gGrid !== null) return
