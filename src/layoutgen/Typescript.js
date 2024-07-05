@@ -110,6 +110,9 @@ interface Layout {
     ${layoutMembers}
 
     begin(ownerName: string, deviceName: string, builderCallback?: (layoutBuilder: LayoutBuilder) => void): void
+
+    changeTab(index: number): void
+    log(message: string): void
 }
 
 const layout = {
@@ -128,7 +131,9 @@ const layout = {
                 layoutBuilder[key] = undefined
             }
         })
-    }
+    },
+    changeTab: gridui.changeTab,
+    log: gridui.log,
 } as Layout
 
 export default layout
