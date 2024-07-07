@@ -1,0 +1,1 @@
+__NUXT_JSONP__("/codegen_jaculus", {data:[{}],fetch:[],mutations:void 0});
