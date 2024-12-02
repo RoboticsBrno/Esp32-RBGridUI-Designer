@@ -97,6 +97,14 @@
       </v-btn>
 
       <v-spacer></v-spacer>
+
+      <WidgetList
+        :widgets="widgets"
+        :selected-widgets="selectedWidgets"
+        @select-widget="selectWidget"
+        @clear-selection="clearSelection"
+      />
+
       <v-divider></v-divider>
       <v-card>
         <v-row
@@ -131,7 +139,7 @@
 
     <div
       class="d-flex flex-column ms-2"
-      style="heigth: 100%; flex: 5 1 0px; overflow: hidden"
+      style="height: 100%; flex: 5 1 0px; overflow: hidden"
     >
       <v-card class="mb-1 code-card" style="flex-grow: 0">
         <code-display
@@ -174,6 +182,7 @@ import * as TsGen from '~/src/layoutgen/Typescript'
 import CodeDisplay from '~/components/CodeDisplay'
 import ImportDialog from '~/components/ImportDialog'
 import PropertyTable from '~/components/PropertyTable'
+import WidgetList from '~/components/WidgetList'
 
 import '~/gridui/web/js/01_header'
 import '~/gridui/web/js/05_widget'
@@ -199,7 +208,8 @@ export default {
   components: {
     CodeDisplay,
     ImportDialog,
-    PropertyTable
+    PropertyTable,
+    WidgetList
   },
   data() {
     let types = []
@@ -230,7 +240,8 @@ export default {
       tabsCount: 1,
       activeTab: 0,
       hideCpp: window.localStorage.getItem('hideCpp') === 'true',
-      hideTs: window.localStorage.getItem('hideTs') === 'true'
+      hideTs: window.localStorage.getItem('hideTs') === 'true',
+      widgets: []
     }
   },
   computed: {
@@ -293,6 +304,7 @@ export default {
     window.IN_RB_GRID_DESIGNER = true
 
     gGrid = new window.Grid(null, 'grid', this.loadLayout())
+    this.widgets = gGrid.widgets
 
     gWidgetAdder = new WidgetAdder(gGrid, this.onWidgetAdd.bind(this))
     this.copyPaster = new WidgetCopyPaster(gGrid)
@@ -345,14 +357,15 @@ export default {
     },
     selectWidget(widget, multiple) {
       const idx = this.selectedWidgets.indexOf(widget)
-      if (idx !== -1) this.selectedWidgets.splice(idx, 1)
-      else {
-        widget.el.classList.add('grid-widget-active')
-        if (!multiple) {
-          this.clearSelection(0)
-        }
+      if (idx !== -1) {
+        this.selectedWidgets.splice(idx, 1)
+        widget.el.classList.remove('grid-widget-active')
       }
-      this.selectedWidgets.push(widget)
+
+      if (!multiple || idx === -1) {
+        widget.el.classList.add('grid-widget-active')
+        this.selectedWidgets.push(widget)
+      }
     },
     onGridMouseDown(ev) {
       if (ev.button !== 0) return
